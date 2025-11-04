@@ -1,0 +1,2 @@
+source,source name,destination,destination name,edge unique id,reverse edge unique id,edge name,reverse edge name,edge definition,reverse edge definition,unique key
+CFIHOS-00000028,tag,CFIHOS-00000022,document master,XOM-10510001,XOM-10520001,tag-doc edge,tag-doc reverse edge,tag to document edge identifier to facilitate many to many relationships,tag to document edge identifier to facilitate reverse many to many relationships,XOM-10510001.XOM-10520001

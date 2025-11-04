@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neat-industrial-standard-processor"
+version = "0.1.0"
+description = "Industrial standard processor for NEAT"
+authors = [
+    {name="Ali Majed", email="ali.majed@cognite.com"},
+    {name="Nikola Vasiljevic", email="nikola.vasiljevic@cognite.com"},
+]
+license = "Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "chardet>=5.2.0",
+    "cognite-neat",
+    "pbr>=7.0.1",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "pytest-mock>=3.15.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["cfihos_handler"]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+]
+
+# Here we register our plugin in the NEAT plugin system following the convention
+# "format_of_plugin = module.path:ClassName"
+[project.entry-points."cognite.neat.plugins.data_model.importers"]
+cfihos = "cfihos_handler.plugin:CFIHOS_2DataModelImporter"

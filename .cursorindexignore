@@ -1,0 +1,89 @@
+
+# Large data files that don't need AI context
+*.csv
+*.json
+*.parquet
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.xlsx
+*.xls
+*.tsv
+*.xml
+*.yaml
+*.yml
+
+# Generated/compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Large dependencies and lock files
+poetry.lock
+package-lock.json
+yarn.lock
+Pipfile.lock
+
+# Documentation that might clutter AI context
+*.md
+*.rst
+*.txt
+docs/
+documentation/
+
+# Configuration files that don't need AI understanding
+.env
+.env.*
+config.ini
+*.conf
+*.cfg
+cdf.toml
+
+# Test files (optional - remove if you want AI to understand tests)
+test_*.py
+*_test.py
+tests/
+__tests__/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+.tmp/
+
+# OS and IDE files
+.DS_Store
+.vscode/
+.idea/
+
+# Large media files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.ico
+*.pdf
+*.mp4
+*.mov
+*.avi
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/

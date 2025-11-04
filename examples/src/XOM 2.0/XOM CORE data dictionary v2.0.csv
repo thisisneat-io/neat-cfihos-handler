@@ -1,0 +1,16 @@
+CFIHOS unique code,section,object,entity name,property name,entity attribute name,definition,note / comment,example,identifier / mandatory / optional,format,constraint must be present in,data source,former section (if different from last published version),relationship verb,is first class citizen,CDF isList,CDF reverse property id,CDF reverse property name,CDF reverse property description,CDF isList,CDF reverse property id,CDF reverse property name,CDF reverse property description,in model
+XOM-00000001,A.2.01,entity:,custom site entity,,,A geographical surface that can be identified on a map,,,,,Example Property,Owner/Operator,,,True,,,,,,,,,
+XOM-10000001,,attribute:,custom site entity,xom site measurement system code,,The default measurement system that is used by a site,,,Optional,"Text, max 10 characters",,,,,,,,,,,,,,True
+XOM-10000002,,attribute:,custom site entity,xom site code,,A code that uniquely identifies the site,,,Optional,"Text, max 40 characters",,,,,,,,,,,,,,True
+XOM-10000003,,attribute:,custom site entity,xom site name,,A unique name to identify a geographical location,,,Optional,"Text, max 100 characters",,,,,,,,,,,,,,True
+XOM-00000002,A.2.01,entity:,custom process unit entity,,,A custome process unit entity definition,,,,,,Owner/Operator,,,False,,,,,,,,,
+XOM-10000004,,attribute:,custom process unit entity,custom process unit custom property 4,,custome process unit entity definition 4,,,Optional,"Text, max 10 characters",,,,,,,,,,,,,,True
+XOM-10000005,,attribute:,custom process unit entity,custom process unit custom property 5,,custome process unit entity definition 5,,,Optional,"Text, max 40 characters",,,,,,,,,,,,,,True
+XOM-00000003,A.2.01,entity:,custom entity 3,,,custom entity definition 3,,,,,,Owner/Operator,,,False,,,,,,,,,
+XOM-10000006,,attribute:,custom entity 3,custom property 6,,custom definition 6,,,Optional,"Text, max 10 characters",,,,,,,,,,,,,,True
+XOM-10000007,,attribute:,custom entity 3,custom property 7,,custom definition 7,,,Optional,"Text, max 40 characters",,,,,,,,,,,,,,True
+XOM-00000004,A.2.01,entity:,custom entity 4,,,custom entity definition 3,,,,,,Owner/Operator,,,False,,,,,,,,,
+XOM-10000008,,attribute:,custom entity 4,custom property 8,,custom definition 8,,,Optional,"Text, max 10 characters",,,,,,,,,,,,,,True
+XOM-10000009,,attribute:,custom entity 4,custom property 9,,custom definition 9,,,Optional,"Text, max 40 characters",,,,,,,,,,,,,,True
+XOM-10000010,,attribute:,custom entity 4,custom property 10,,custom definition 10,,,Optional,"Text, max 40 characters",,,,,,,,,,,,,,True
+,,,,,,,,,,,,,,,,,,,,,,,,
