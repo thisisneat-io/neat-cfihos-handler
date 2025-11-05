@@ -1221,7 +1221,7 @@ wheels = [
 ]
 
 [[package]]
-name = "neat-industrial-standard-processor"
+name = "neat-cfihos-handler"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

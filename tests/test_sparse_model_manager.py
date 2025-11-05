@@ -51,6 +51,8 @@ class TestSparseCfihosManager:
             "scope_config": {},
             "scopes": [
                 {
+                    "scope_model_external_id": "test_scope_model_external_id",
+                    "scope_model_version": "test_scope_model_version",
                     "scope_name": "test_scope",
                     "scope_description": "test scope description",
                     "scope_subset": [],
