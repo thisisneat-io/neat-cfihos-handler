@@ -3,12 +3,11 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "neat-industrial-standard-processor"
+name = "neat-cfihos-handler"
 version = "0.1.0"
-description = "Industrial standard processor for NEAT"
+description = "CFIHOS standard processor for NEAT"
 authors = [
     {name="Ali Majed", email="ali.majed@cognite.com"},
-    {name="Nikola Vasiljevic", email="nikola.vasiljevic@cognite.com"},
 ]
 license = "Apache-2.0"
 readme = "README.md"
