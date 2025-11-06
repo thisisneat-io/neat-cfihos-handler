@@ -1,0 +1,48 @@
+name: Publish Python Package on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC trusted publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build package
+        run: |
+          uv build
+          ls -l dist
+
+      - name: Determine target repository
+        id: repo
+        run: |
+          if [[ "${{ github.event.release.tag_name }}" == test-* ]]; then
+            echo "repository-url=https://test.pypi.org/legacy/" >> $GITHUB_OUTPUT
+            echo "Using TestPyPI"
+          else
+            echo "repository-url=https://upload.pypi.org/legacy/" >> $GITHUB_OUTPUT
+            echo "Using PyPI"
+          fi
+
+      - name: Publish to PyPI or TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
+        with:
+          user: __token__
+          password: ${{ startsWith(github.event.release.tag_name, 'test-') && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+          repository-url: ${{ steps.repo.outputs.repository-url }}
