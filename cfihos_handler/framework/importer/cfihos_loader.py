@@ -964,7 +964,7 @@ class CfihosModelLoader(BaseModelInterpreter):
                     df.at[idx, cfihos_parent_id_col] = None
                     df.at[idx, cfihos_parent_name_col] = None
                     if cfihos_parent_id is None:
-                        self._loggingInfo(
+                        self._loggingDebug(
                             f"parent name '{cfihos_parent_name}' is None, for {row[EntityStructure.ID]}"
                         )
                         continue
