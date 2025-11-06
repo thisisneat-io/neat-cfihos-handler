@@ -75,9 +75,6 @@ def check_file_content_encoding(fpath: str) -> str:
 
         # Heuristic fallbacks
         if not encoding or encoding.lower() == "ascii" or confidence < 0.7:
-            logging.warning(
-                f"⚠️ Low confidence or ascii in {fpath} — falling back to 'cp1252'"
-            )
             return "cp1252"  # very tolerant for Excel/Windows files
 
         return encoding
