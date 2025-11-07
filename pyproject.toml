@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm", "wheel"]
+requires = ["setuptools>=69.0", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "neat-cfihos-handler"
-version = "0.1.0"
+version = "0.1.2"
 description = "CFIHOS standard processor for NEAT"
 authors = [
     {name="Ali Majed", email="ali.majed@cognite.com"},
