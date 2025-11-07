@@ -47,6 +47,11 @@ jobs:
             echo "Using PyPI"
           fi
 
+      - name: List dist contents
+        run: |
+          ls -l dist
+          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
+
       - name: Publish to PyPI or TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
