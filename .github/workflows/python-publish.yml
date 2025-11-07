@@ -21,24 +21,19 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Clean previous builds
+        run: rm -rf dist build *.egg-info
+
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade build setuptools wheel twine
+          python -m pip show setuptools
 
-
-      - name: Clean previous builds
-        run: rm -rf dist build *.egg-info
-
-      - name: Debug workspace
+      - name: Build and verify package
         run: |
-          pwd
-          ls -la
-
-
-      - name: Build package
-        run: |
-          python -m build
+          python -m build --sdist --wheel
+          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
           twine check dist/*
 
       - name: Determine target repository
