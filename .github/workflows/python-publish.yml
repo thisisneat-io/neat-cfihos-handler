@@ -24,8 +24,9 @@ jobs:
       - name: Install uv
         run: pip install uv
 
-      - name: Clean previous builds
-        run: rm -rf dist build *.egg-info
+      - name: Ensure latest build backend
+        run: |
+          uv pip install --upgrade build setuptools wheel
 
       - name: Build package
         run: |
