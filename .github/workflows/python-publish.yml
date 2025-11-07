@@ -30,6 +30,12 @@ jobs:
       - name: Clean previous builds
         run: rm -rf dist build *.egg-info
 
+      - name: Debug workspace
+        run: |
+          pwd
+          ls -la
+
+
       - name: Build package
         run: |
           python -m build
