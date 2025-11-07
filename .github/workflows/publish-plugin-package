@@ -1,0 +1,52 @@
+name: Publish Plugin to PyPI on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # for OIDC trusted publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build setuptools wheel twine
+          python -m pip show setuptools
+
+      - name: Build and verify package
+        run: |
+          python -m build --sdist --wheel
+          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
+          twine check dist/*
+
+      - name: Determine target repository
+        id: repo
+        run: |
+          if [[ "${{ github.event.release.tag_name }}" == test-* ]]; then
+            echo "repository-url=https://test.pypi.org/legacy/" >> $GITHUB_OUTPUT
+            echo "Using TestPyPI"
+          else
+            echo "repository-url=https://upload.pypi.org/legacy/" >> $GITHUB_OUTPUT
+            echo "Using PyPI"
+          fi
+
+      - name: Publish to PyPI or TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
+        with:
+          user: __token__
+          password: ${{ startsWith(github.event.release.tag_name, 'test-') && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+          repository-url: ${{ steps.repo.outputs.repository-url }}
