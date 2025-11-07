@@ -23,7 +23,9 @@ jobs:
 
       - name: Install build tools
         run: |
-          pip install --upgrade pip build setuptools wheel twine
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build setuptools wheel twine
+
 
       - name: Clean previous builds
         run: rm -rf dist build *.egg-info
