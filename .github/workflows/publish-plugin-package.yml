@@ -53,7 +53,7 @@ jobs:
           unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
 
       - name: Publish to PyPI or TestPyPI
-        uses: pypa/gh-action-pypi-publish@v1.10.0
+        uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ startsWith(github.event.release.tag_name, 'test-') && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
