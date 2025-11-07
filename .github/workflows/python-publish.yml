@@ -1,4 +1,4 @@
-name: Publish to PyPi on Release
+name: Publish to PyPI on Release
 
 on:
   release:
@@ -10,7 +10,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write  # for OIDC trusted publishing
 
     steps:
       - name: Checkout repository
@@ -21,17 +21,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install uv
-        run: pip install uv
-
-      - name: Ensure latest build backend
+      - name: Install build tools
         run: |
-          uv pip install --upgrade build setuptools wheel
+          pip install --upgrade pip build setuptools wheel twine
+
+      - name: Clean previous builds
+        run: rm -rf dist build *.egg-info
 
       - name: Build package
         run: |
-          uv build
-          ls -l dist
+          python -m build
+          twine check dist/*
 
       - name: Determine target repository
         id: repo
