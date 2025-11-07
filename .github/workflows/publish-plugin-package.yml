@@ -47,11 +47,6 @@ jobs:
             echo "Using PyPI"
           fi
 
-      - name: List dist contents
-        run: |
-          ls -l dist
-          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
-
       - name: Publish to PyPI or TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
@@ -59,6 +54,3 @@ jobs:
           password: ${{ startsWith(github.event.release.tag_name, 'test-') && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
           repository-url: ${{ steps.repo.outputs.repository-url }}
           packages-dir: dist
-          skip-existing: true
-          verbose: true
-          verify-metadata: true
