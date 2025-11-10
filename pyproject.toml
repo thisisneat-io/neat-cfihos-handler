@@ -21,15 +21,16 @@ dependencies = [
     "pytest-mock>=3.15.1",
 ]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
-include = ["cfihos_handler"]
+include = ["cfihos_handler*"]
 
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
 ]
 
-# Here we register our plugin in the NEAT plugin system following the convention
-# "format_of_plugin = module.path:ClassName"
 [project.entry-points."cognite.neat.plugins.data_model.importers"]
 cfihos = "cfihos_handler.plugin:CFIHOS_2DataModelImporter"
