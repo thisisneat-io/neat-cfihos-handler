@@ -206,7 +206,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         # Step 2: extend the direct relations properties with sclarified properties
         self._extend_additional_properties_for_direct_relations()
         # Step 3: extend the properties that have relevant UOM with string properties suffexed with _UOM
-        # self._extend_UOM_properties()
+        self._extend_UOM_properties()
 
     def _build_model_structures(self):
         """Build final model structures from processed CFIHOS data."""
