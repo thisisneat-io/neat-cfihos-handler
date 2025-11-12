@@ -1,14 +1,17 @@
 """Views model module for creating data model views from entities."""
 from cognite.neat.core._constants import COGNITE_CONCEPTS
 
-from cfihos_handler.framework.common.constants import CDF_CDM_SPACE, CDF_CDM_VERSION
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common.constants import (
+    CDF_CDM_SPACE,
+    CDF_CDM_VERSION,
+)
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     EntityStructure,
     PropertyStructure,
     Relations,
 )
-from cfihos_handler.framework.common.log import log_init
-from cfihos_handler.framework.common.utils import (
+from cognite.neat_cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.utils import (
     create_neat_container_structure,
     create_neat_property_structure,
     create_neat_view_structure,

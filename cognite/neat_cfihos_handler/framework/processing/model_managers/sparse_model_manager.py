@@ -8,17 +8,17 @@ for sparse CFIHOS data model ingestion.
 
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.generic_classes import SparseModelType
-from cfihos_handler.framework.common.log import log_init
-from cfihos_handler.framework.common.utils import collect_model_subset
-from cfihos_handler.framework.neat_data_model.model_creater import (
+from cognite.neat_cfihos_handler.framework.common.generic_classes import SparseModelType
+from cognite.neat_cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.utils import collect_model_subset
+from cognite.neat_cfihos_handler.framework.neat_data_model.model_creater import (
     build_neat_model_from_entities,
 )
-from cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
+from cognite.neat_cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
     BaseCfihosManager,
     ReadResult,
 )
-from cfihos_handler.framework.processing.processors.sparse_properties import (
+from cognite.neat_cfihos_handler.framework.processing.processors.sparse_properties import (
     SparsePropertiesProcessor,
 )
 
@@ -184,7 +184,11 @@ class SparseCfihosManager(BaseCfihosManager):
         logging.info(f"Building {len(scoped_model)} scoped entity views")
         # Validate required keys in views_scope
         required_keys = ["scope_name", "scope_model_external_id", "scope_model_version"]
-        missing_keys = [key for key in required_keys if key not in views_scope or views_scope[key] is None]
+        missing_keys = [
+            key
+            for key in required_keys
+            if key not in views_scope or views_scope[key] is None
+        ]
         if missing_keys:
             raise NeatValueError(
                 f"Scope '{scope}' is missing required keys: {', '.join(missing_keys)}"
@@ -205,11 +209,14 @@ class SparseCfihosManager(BaseCfihosManager):
                 if views_scope.get("scope_description")
                 else "",
                 "external_id": "CFIHOS_"
-                + views_scope["scope_model_external_id"].replace(" ", "_").replace("-", "_").upper(),
+                + views_scope["scope_model_external_id"]
+                .replace(" ", "_")
+                .replace("-", "_")
+                .upper(),
                 "version": views_scope["scope_model_version"],
                 "creator": self._model_creator,
             },
-        )        
+        )
 
     def read_model(self) -> None | ReadResult:
         """Read and process the model according to the configured model_type.

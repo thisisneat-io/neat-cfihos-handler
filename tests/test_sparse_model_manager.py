@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.generic_classes import SparseModelType
-from cfihos_handler.framework.processing.model_managers.sparse_model_manager import (
+from cognite.neat_cfihos_handler.framework.common.generic_classes import SparseModelType
+from cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager import (
     SparseCfihosManager,
 )
 
@@ -62,7 +62,7 @@ class TestSparseCfihosManager:
         return config
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_init_with_containers_model_type(
         self, mock_sparse_processor, minimal_processor_config
@@ -86,7 +86,7 @@ class TestSparseCfihosManager:
         mock_processor_instance.process_and_collect_models.assert_called_once()
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_init_with_views_model_type(
         self, mock_sparse_processor, processor_config_with_scopes
@@ -115,7 +115,7 @@ class TestSparseCfihosManager:
             NeatValueError, match=r"model_type cannot be None or empty( string)?"
         ):
             with patch(
-                "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+                "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
             ):
                 SparseCfihosManager(minimal_processor_config, model_type="")
 
@@ -125,7 +125,7 @@ class TestSparseCfihosManager:
             NeatValueError, match="Invalid model_type.*Valid values are"
         ):
             with patch(
-                "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+                "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
             ):
                 SparseCfihosManager(minimal_processor_config, model_type="invalid")
 
@@ -138,7 +138,7 @@ class TestSparseCfihosManager:
             match=r"scope cannot be None or empty( string)? when model_type is 'views'",
         ):
             with patch(
-                "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+                "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
             ):
                 SparseCfihosManager(
                     processor_config_with_scopes,
@@ -154,17 +154,17 @@ class TestSparseCfihosManager:
             NeatValueError, match="Missing required keys in configuration"
         ):
             with patch(
-                "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+                "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
             ):
                 SparseCfihosManager(
                     incomplete_config, model_type=SparseModelType.CONTAINERS
                 )
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.build_neat_model_from_entities"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.build_neat_model_from_entities"
     )
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_read_model_containers(
         self, mock_sparse_processor, mock_build_model, minimal_processor_config
@@ -192,13 +192,13 @@ class TestSparseCfihosManager:
         mock_build_model.assert_called_once()
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.collect_model_subset"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.collect_model_subset"
     )
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.build_neat_model_from_entities"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.build_neat_model_from_entities"
     )
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_read_model_views(
         self,
@@ -234,7 +234,7 @@ class TestSparseCfihosManager:
         mock_build_model.assert_called_once()
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_read_model_raises_error_if_model_type_empty(
         self, mock_sparse_processor, minimal_processor_config
@@ -257,7 +257,7 @@ class TestSparseCfihosManager:
             manager.read_model()
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_read_model_raises_error_if_model_type_invalid(
         self, mock_sparse_processor, minimal_processor_config
@@ -285,7 +285,7 @@ class TestSparseCfihosManager:
             manager.read_model()
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_get_scope_by_name(
         self, mock_sparse_processor, processor_config_with_scopes
@@ -310,7 +310,7 @@ class TestSparseCfihosManager:
         assert scope["scope_description"] == "test scope description"
 
     @patch(
-        "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
+        "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparsePropertiesProcessor"
     )
     def test_get_scope_by_name_not_found(
         self, mock_sparse_processor, processor_config_with_scopes

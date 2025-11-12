@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from cfihos_handler.plugin import CFIHOS_2DataModelImporter
+from cognite.neat_cfihos_handler.plugin import CFIHOS_2DataModelImporter
 
 
 class TestCFIHOS_2DataModelImporter:
@@ -15,7 +15,9 @@ class TestCFIHOS_2DataModelImporter:
         config_dir = "/path/to/config"
         kwargs = {"model_type": "containers", "scope": "test_scope"}
 
-        with patch("cfihos_handler.plugin.CFIHOSProcessor") as mock_processor:
+        with patch(
+            "cognite.neat_cfihos_handler.plugin.CFIHOSProcessor"
+        ) as mock_processor:
             mock_instance = Mock()
             mock_processor.return_value = mock_instance
             result = plugin.configure(configurationDir=config_dir, **kwargs)
@@ -30,7 +32,9 @@ class TestCFIHOS_2DataModelImporter:
         plugin = CFIHOS_2DataModelImporter()
         kwargs = {"model_type": "containers"}
 
-        with patch("cfihos_handler.plugin.CFIHOSProcessor") as mock_processor:
+        with patch(
+            "cognite.neat_cfihos_handler.plugin.CFIHOSProcessor"
+        ) as mock_processor:
             mock_instance = Mock()
             mock_processor.return_value = mock_instance
             result = plugin.configure(**kwargs)
@@ -47,7 +51,9 @@ class TestCFIHOS_2DataModelImporter:
             "custom_param": "custom_value",
         }
 
-        with patch("cfihos_handler.plugin.CFIHOSProcessor") as mock_processor:
+        with patch(
+            "cognite.neat_cfihos_handler.plugin.CFIHOSProcessor"
+        ) as mock_processor:
             mock_instance = Mock()
             mock_processor.return_value = mock_instance
             plugin.configure(**kwargs)

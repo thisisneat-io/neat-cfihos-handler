@@ -16,15 +16,15 @@ from typing import Any, ClassVar
 import numpy as np
 import pandas as pd
 
-from cfihos_handler.framework.common import constants
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common import constants
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     DataSource,
     EntityStructure,
     PropertyStructure,
     Relations,
 )
-from cfihos_handler.framework.common.utils import read_input_sheet
-from cfihos_handler.framework.importer.base_model_interpreter import (
+from cognite.neat_cfihos_handler.framework.common.utils import read_input_sheet
+from cognite.neat_cfihos_handler.framework.importer.base_model_interpreter import (
     BaseModelInterpreter,
 )
 

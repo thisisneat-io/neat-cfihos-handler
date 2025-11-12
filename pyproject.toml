@@ -3,7 +3,7 @@ requires = ["setuptools>=69.0", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "neat-cfihos-handler"
+name = "cognite-neat-cfihos-handler"
 version = "0.1.3"
 description = "CFIHOS standard processor for NEAT"
 authors = [
@@ -25,12 +25,15 @@ dependencies = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["cfihos_handler*"]
+include = ["cognite*"]
 
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["cognite"]
+
 [project.entry-points."cognite.neat.plugins.data_model.importers"]
-cfihos = "cfihos_handler.plugin:CFIHOS_2DataModelImporter"
+cfihos = "cognite.neat_cfihos_handler.plugin:CFIHOS_2DataModelImporter"

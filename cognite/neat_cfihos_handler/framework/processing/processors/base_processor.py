@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 import pandas as pd
 from cognite.neat.core._issues import IssueList
 
-from cfihos_handler.framework.common.generic_classes import DataSource
-from cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.generic_classes import DataSource
+from cognite.neat_cfihos_handler.framework.common.log import log_init
 
 logging = log_init(f"{__name__}", "i")
 

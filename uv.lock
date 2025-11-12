@@ -411,6 +411,37 @@ wheels = [
 ]
 
 [[package]]
+name = "cognite-neat-cfihos-handler"
+version = "0.1.3"
+source = { editable = "." }
+dependencies = [
+    { name = "chardet" },
+    { name = "cognite-neat" },
+    { name = "pbr" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-mock" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "jupyter" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chardet", specifier = ">=5.2.0" },
+    { name = "cognite-neat", specifier = "==0.123.33" },
+    { name = "pbr", specifier = ">=7.0.1" },
+    { name = "pre-commit", specifier = ">=4.3.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "jupyter", specifier = ">=1.1.1" }]
+
+[[package]]
 name = "cognite-sdk"
 version = "7.89.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1343,37 +1374,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/6d/fd/91545e604bc3dad7d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl", hash = "sha256:3b48d6c8fbca4b299bf3982ea7db1af21580e4fec269ad087b9e81588891200b", size = 78454, upload-time = "2024-04-04T11:20:34.895Z" },
 ]
-
-[[package]]
-name = "neat-cfihos-handler"
-version = "0.1.3"
-source = { editable = "." }
-dependencies = [
-    { name = "chardet" },
-    { name = "cognite-neat" },
-    { name = "pbr" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-mock" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "jupyter" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "chardet", specifier = ">=5.2.0" },
-    { name = "cognite-neat", specifier = "==0.123.33" },
-    { name = "pbr", specifier = ">=7.0.1" },
-    { name = "pre-commit", specifier = ">=4.3.0" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-mock", specifier = ">=3.15.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "jupyter", specifier = ">=1.1.1" }]
 
 [[package]]
 name = "nest-asyncio"

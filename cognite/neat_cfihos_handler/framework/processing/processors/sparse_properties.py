@@ -25,16 +25,22 @@ from dataclasses import dataclass, field
 import pandas as pd
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.constants import CONTAINER_PROPERTY_LIMIT
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common.constants import (
+    CONTAINER_PROPERTY_LIMIT,
+)
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     EntityStructure,
     PropertyStructure,
     Relations,
     SparseModelType,
 )
-from cfihos_handler.framework.common.log import log_init
-from cfihos_handler.framework.importer.cfihos_loader import CfihosModelLoader
-from cfihos_handler.framework.processing.processors.base_processor import BaseProcessor
+from cognite.neat_cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.importer.cfihos_loader import (
+    CfihosModelLoader,
+)
+from cognite.neat_cfihos_handler.framework.processing.processors.base_processor import (
+    BaseProcessor,
+)
 
 logging = log_init(f"{__name__}", "i")
 

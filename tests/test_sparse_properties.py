@@ -4,12 +4,12 @@ import pandas as pd
 import pytest
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     EntityStructure,
     PropertyStructure,
     Relations,
 )
-from cfihos_handler.framework.processing.processors.sparse_properties import (
+from cognite.neat_cfihos_handler.framework.processing.processors.sparse_properties import (
     SparsePropertiesProcessor,
 )
 
