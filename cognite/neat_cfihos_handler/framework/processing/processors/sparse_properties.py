@@ -25,16 +25,22 @@ from dataclasses import dataclass, field
 import pandas as pd
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.constants import CONTAINER_PROPERTY_LIMIT
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common.constants import (
+    CONTAINER_PROPERTY_LIMIT,
+)
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     EntityStructure,
     PropertyStructure,
     Relations,
     SparseModelType,
 )
-from cfihos_handler.framework.common.log import log_init
-from cfihos_handler.framework.importer.cfihos_loader import CfihosModelLoader
-from cfihos_handler.framework.processing.processors.base_processor import BaseProcessor
+from cognite.neat_cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.importer.cfihos_loader import (
+    CfihosModelLoader,
+)
+from cognite.neat_cfihos_handler.framework.processing.processors.base_processor import (
+    BaseProcessor,
+)
 
 logging = log_init(f"{__name__}", "i")
 
@@ -206,7 +212,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         # Step 2: extend the direct relations properties with sclarified properties
         self._extend_additional_properties_for_direct_relations()
         # Step 3: extend the properties that have relevant UOM with string properties suffexed with _UOM
-        # self._extend_UOM_properties()
+        self._extend_UOM_properties()
 
     def _build_model_structures(self):
         """Build final model structures from processed CFIHOS data."""

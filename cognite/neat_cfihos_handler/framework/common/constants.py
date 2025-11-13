@@ -10,9 +10,9 @@ CDF_CDM_VERSION = "v1"
 CDF_CDM_SPACE = "cdf_cdm"
 
 CFIHOS_PROCESSOR_REGISTRY = {
-    "sparse": "cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparseCfihosManager",
+    "sparse": "cognite.neat_cfihos_handler.framework.processing.model_managers.sparse_model_manager.SparseCfihosManager",
     # Add more when implemented:
-    # "hybrid": "processor.cfihos.framework.processing.model_managers.HybridCfihosLoader",
+    # "hybrid": "cognite.neat_cfihos_handler.framework.processing.model_managers.HybridCfihosLoader",
     # ...
 }
 

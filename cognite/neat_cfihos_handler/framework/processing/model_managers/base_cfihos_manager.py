@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from cognite.neat.core._issues import IssueList
 
-from cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.log import log_init
 
 LOG_LEVEL = "i"  # Define a constant for the log level
 logging = log_init(f"{__name__}", LOG_LEVEL)

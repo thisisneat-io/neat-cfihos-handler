@@ -21,12 +21,12 @@ from cognite.neat.core._issues.errors import (
     NeatValueError,
 )
 
-from cfihos_handler.framework.common.log import log_init
-from cfihos_handler.framework.common.reader import read_yaml
-from cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
+from cognite.neat_cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.reader import read_yaml
+from cognite.neat_cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
     BaseCfihosManager,
 )
-from cfihos_handler.framework.processing.model_managers.model_manager_provider import (
+from cognite.neat_cfihos_handler.framework.processing.model_managers.model_manager_provider import (
     CfihosManagerProvider,
 )
 
