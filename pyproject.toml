@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognite-neat-cfihos-handler"
-version = "0.1.3"
+version = "0.1.4"
 description = "CFIHOS standard processor for NEAT"
 authors = [
     {name="Ali Majed", email="ali.majed@cognite.com"},
@@ -37,3 +37,8 @@ packages = ["cognite"]
 
 [project.entry-points."cognite.neat.plugins.data_model.importers"]
 cfihos = "cognite.neat_cfihos_handler.plugin:CFIHOS_2DataModelImporter"
+
+[tool.mypy]
+namespace_packages = true
+explicit_package_bases = true
+no_strict_optional = true
