@@ -85,4 +85,3 @@ jobs:
           repository-url: ${{ steps.repo.outputs.repository-url }}
           packages-dir: dist
           verbose: true
-          verbose: true
