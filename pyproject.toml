@@ -32,9 +32,6 @@ dev = [
     "jupyter>=1.1.1",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["cognite"]
-
 [project.entry-points."cognite.neat.plugins.data_model.importers"]
 cfihos = "cognite.neat_cfihos_handler.plugin:CFIHOS_2DataModelImporter"
 
