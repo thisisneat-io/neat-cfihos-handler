@@ -44,11 +44,11 @@ jobs:
           RELEASE_NAME="${{ github.event.release.name }}"
 
           if [[ "$BRANCH" == "test" ]]; then
-            echo "repository-url=https://test.pypi.org/" >> $GITHUB_OUTPUT
+            echo "repository-url=https://test.pypi.org/legacy/" >> $GITHUB_OUTPUT
             echo "use-test-pypi=true" >> $GITHUB_OUTPUT
             echo "Using TestPyPI (release from test branch)"
           elif [[ "$BRANCH" == "main" ]] && [[ "$RELEASE_NAME" == v* ]]; then
-            echo "repository-url=https://upload.pypi.org/" >> $GITHUB_OUTPUT
+            echo "repository-url=https://upload.pypi.org/legacy/" >> $GITHUB_OUTPUT
             echo "use-test-pypi=false" >> $GITHUB_OUTPUT
             echo "Using PyPI (release from main branch with v-prefixed name)"
           else
