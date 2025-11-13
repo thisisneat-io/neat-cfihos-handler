@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
     "chardet>=5.2.0",
     "cognite-neat==0.123.33",
+    "cognite-neat==0.123.33",
     "pbr>=7.0.1",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
