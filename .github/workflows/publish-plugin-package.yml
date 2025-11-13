@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-and-publish:
+    if: github.event.release.target_commitish == 'main' || github.event.release.target_commitish == 'test'
     runs-on: ubuntu-latest
 
     permissions:
@@ -39,18 +40,26 @@ jobs:
       - name: Determine target repository
         id: repo
         run: |
-          if [[ "${{ github.event.release.tag_name }}" == test-* ]]; then
-            echo "repository-url=https://test.pypi.org/legacy/" >> $GITHUB_OUTPUT
-            echo "Using TestPyPI"
+          BRANCH="${{ github.event.release.target_commitish }}"
+          RELEASE_NAME="${{ github.event.release.name }}"
+
+          if [[ "$BRANCH" == "test" ]]; then
+            echo "repository-url=https://test.pypi.org/" >> $GITHUB_OUTPUT
+            echo "use-test-pypi=true" >> $GITHUB_OUTPUT
+            echo "Using TestPyPI (release from test branch)"
+          elif [[ "$BRANCH" == "main" ]] && [[ "$RELEASE_NAME" == v* ]]; then
+            echo "repository-url=https://upload.pypi.org/" >> $GITHUB_OUTPUT
+            echo "use-test-pypi=false" >> $GITHUB_OUTPUT
+            echo "Using PyPI (release from main branch with v-prefixed name)"
           else
-            echo "repository-url=https://upload.pypi.org/legacy/" >> $GITHUB_OUTPUT
-            echo "Using PyPI"
+            echo "Error: Release from 'main' branch must have a release name starting with 'v'. Current release name: $RELEASE_NAME"
+            exit 1
           fi
 
       - name: Publish to PyPI or TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
-          password: ${{ startsWith(github.event.release.tag_name, 'test-') && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+          password: ${{ steps.repo.outputs.use-test-pypi == 'true' && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
           repository-url: ${{ steps.repo.outputs.repository-url }}
           packages-dir: dist
