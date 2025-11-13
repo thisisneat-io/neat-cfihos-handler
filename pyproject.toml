@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognite-neat-cfihos-handler"
-version = "0.1.4"
+version = "0.1.4.1"
 description = "CFIHOS standard processor for NEAT"
 authors = [
     {name="Ali Majed", email="ali.majed@cognite.com"},
