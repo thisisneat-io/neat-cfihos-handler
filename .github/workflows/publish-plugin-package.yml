@@ -60,13 +60,27 @@ jobs:
         run: |
           echo "Repository URL: ${{ steps.repo.outputs.repository-url }}"
           echo "Use TestPyPI: ${{ steps.repo.outputs.use-test-pypi }}"
-          echo "Skip existing: ${{ steps.repo.outputs.skip-existing }}"
+          echo "Package files:"
+          ls -la dist/
 
-      - name: Publish to PyPI or TestPyPI
+      - name: Publish to TestPyPI (using twine)
+        if: steps.repo.outputs.use-test-pypi == 'true'
+        run: |
+          echo "Uploading to TestPyPI with verbose output..."
+          twine upload \
+            --repository-url ${{ steps.repo.outputs.repository-url }} \
+            --username __token__ \
+            --password ${{ secrets.TEST_PYPI_API_TOKEN }} \
+            --verbose \
+            --skip-existing \
+            dist/*
+
+      - name: Publish to PyPI (using action)
+        if: steps.repo.outputs.use-test-pypi != 'true'
         uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
-          password: ${{ steps.repo.outputs.use-test-pypi == 'true' && secrets.TEST_PYPI_API_TOKEN || secrets.PYPI_API_TOKEN }}
+          password: ${{ secrets.PYPI_API_TOKEN }}
           repository-url: ${{ steps.repo.outputs.repository-url }}
           packages-dir: dist
           verbose: true
