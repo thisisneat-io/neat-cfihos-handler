@@ -8,8 +8,10 @@ from importlib import import_module
 
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common.constants import CFIHOS_PROCESSOR_REGISTRY
-from cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
+from cognite.neat_cfihos_handler.framework.common.constants import (
+    CFIHOS_PROCESSOR_REGISTRY,
+)
+from cognite.neat_cfihos_handler.framework.processing.model_managers.base_cfihos_manager import (
     BaseCfihosManager,
 )
 

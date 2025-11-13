@@ -1,8 +1,8 @@
 """Data sheets column mappings for CFIHOS processing."""
 from dataclasses import dataclass
 
-from cfihos_handler.framework.common.constants import PARENT_SUFFIX
-from cfihos_handler.framework.common.generic_classes import (
+from cognite.neat_cfihos_handler.framework.common.constants import PARENT_SUFFIX
+from cognite.neat_cfihos_handler.framework.common.generic_classes import (
     EntityStructure,
     PropertyStructure,
 )

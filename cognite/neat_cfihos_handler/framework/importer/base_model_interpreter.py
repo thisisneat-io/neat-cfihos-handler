@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
-from cfihos_handler.framework.common.log import log_init
+from cognite.neat_cfihos_handler.framework.common.log import log_init
 
 logging = log_init(f"{__name__}", "i")
 

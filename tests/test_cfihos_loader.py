@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from cfihos_handler.framework.common import constants
-from cfihos_handler.framework.importer.cfihos_loader import (
+from cognite.neat_cfihos_handler.framework.common import constants
+from cognite.neat_cfihos_handler.framework.importer.cfihos_loader import (
     CfihosModelLoader,
     cfihosTypeEntity,
     cfihosTypeEquipment,
@@ -131,11 +131,13 @@ class TestCfihosModelLoader:
     def mock_read_input_sheet(self):
         """Mock read_input_sheet function."""
         with patch(
-            "cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+            "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
         ) as mock_read:
             yield mock_read
 
-    @patch("cfihos_handler.framework.importer.cfihos_loader.read_input_sheet")
+    @patch(
+        "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+    )
     def test_init_sets_up_cfihos_types(self, mock_read, minimal_config):
         """Test that initialization sets up cfihos types correctly."""
         # Mock read_input_sheet to return empty DataFrame with required columns
@@ -153,7 +155,9 @@ class TestCfihosModelLoader:
         assert len(loader.includes_cfihos_types) == 1
         assert loader.includes_cfihos_types[0].type == constants.CFIHOS_TYPE_ENTITY
 
-    @patch("cfihos_handler.framework.importer.cfihos_loader.read_input_sheet")
+    @patch(
+        "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+    )
     def test_init_raises_error_on_invalid_cfihos_type(self, mock_read):
         """Test that initialization raises error on invalid cfihos type."""
         config = {
@@ -179,7 +183,9 @@ class TestCfihosModelLoader:
         with pytest.raises(KeyError, match="Provided CFIHOS type.*is not supported"):
             CfihosModelLoader(**config)
 
-    @patch("cfihos_handler.framework.importer.cfihos_loader.read_input_sheet")
+    @patch(
+        "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+    )
     def test_init_sets_cfihos_type_metadata(self, mock_read, minimal_config):
         """Test that initialization sets cfihos_type_metadata."""
         mock_df = pd.DataFrame({"id": [], "name": [], "type": []})
@@ -210,7 +216,7 @@ class TestCfihosModelLoader:
         }
 
         with patch(
-            "cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+            "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
         ) as mock_read:
             mock_df = pd.DataFrame({"id": [], "name": [], "type": []})
             mock_read.return_value = mock_df
@@ -237,7 +243,7 @@ class TestCfihosModelLoader:
         }
 
         with patch(
-            "cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+            "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
         ) as mock_read:
             mock_df = pd.DataFrame({"id": [], "name": [], "type": []})
             mock_read.return_value = mock_df
@@ -263,7 +269,7 @@ class TestCfihosModelLoader:
         }
 
         with patch(
-            "cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+            "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
         ) as mock_read:
             mock_df = pd.DataFrame({"id": [], "name": [], "type": []})
             mock_read.return_value = mock_df
@@ -293,7 +299,7 @@ class TestCfihosModelLoader:
         }
 
         with patch(
-            "cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
+            "cognite.neat_cfihos_handler.framework.importer.cfihos_loader.read_input_sheet"
         ) as mock_read:
             mock_df = pd.DataFrame({"id": [], "name": [], "type": []})
             mock_read.return_value = mock_df

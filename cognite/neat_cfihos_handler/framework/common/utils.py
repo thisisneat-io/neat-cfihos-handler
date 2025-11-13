@@ -12,7 +12,7 @@ import chardet
 import pandas as pd
 from cognite.neat.core._issues.errors import NeatValueError
 
-from cfihos_handler.framework.common import constants
+from cognite.neat_cfihos_handler.framework.common import constants
 
 from .generic_classes import (
     DataSource,
