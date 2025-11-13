@@ -45,6 +45,7 @@ jobs:
 
           if [[ "$BRANCH" == "test" ]]; then
             echo "repository-url=https://test.pypi.org/legacy" >> $GITHUB_OUTPUT
+            echo "repository-url=https://test.pypi.org/legacy" >> $GITHUB_OUTPUT
             echo "use-test-pypi=true" >> $GITHUB_OUTPUT
             echo "Using TestPyPI (release from test branch)"
           elif [[ "$BRANCH" == "main" ]] && [[ "$RELEASE_NAME" == v* ]]; then
@@ -83,4 +84,5 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
           repository-url: ${{ steps.repo.outputs.repository-url }}
           packages-dir: dist
+          verbose: true
           verbose: true
