@@ -1,12 +1,13 @@
-name: Publish Plugin to PyPI on Release
+name: Publish Plugin to PyPI or TestPyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'       # e.g. v1.0.0 → publish to PyPI
+      - 'test-*'   # e.g. test-1.0.0 → publish to TestPyPI
 
 jobs:
   build-and-publish:
-    if: github.event.release.target_commitish == 'main' || github.event.release.target_commitish == 'test'
     runs-on: ubuntu-latest
 
     permissions:
@@ -16,6 +17,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for branch detection + versioning
+
+      - name: Determine branch containing this tag
+        id: branch
+        run: |
+          BRANCH=$(git branch -r --contains $GITHUB_SHA | grep -Eo 'origin/(main|test)' | head -n1 | sed 's|origin/||')
+          echo "Tag belongs to branch: $BRANCH"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      # Only continue if tag is on main or test branch
+      - name: Stop if tag not from main or test
+        if: steps.branch.outputs.branch == ''
+        run: |
+          echo "This tag does not point to a commit on 'main' or 'test'. Skipping publish."
+          exit 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,62 +42,69 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade build setuptools wheel twine
-          python -m pip show setuptools
+          python -m pip install --upgrade build setuptools wheel twine toml
 
       - name: Clean old build artifacts
         run: rm -rf dist build *.egg-info
 
-      - name: Build and verify package
+      - name: Derive version and target repository
+        id: version
         run: |
-          python -m build --sdist --wheel
-          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version" || true
-          twine check dist/*
+          TAG_NAME="${GITHUB_REF_NAME}"
+          echo "Processing tag: $TAG_NAME"
 
-      - name: Determine target repository
-        id: repo
-        run: |
-          BRANCH="${{ github.event.release.target_commitish }}"
-          RELEASE_NAME="${{ github.event.release.name }}"
-
-          if [[ "$BRANCH" == "test" ]]; then
-            echo "repository-url=https://test.pypi.org/legacy/" >> $GITHUB_OUTPUT
-            echo "use-test-pypi=true" >> $GITHUB_OUTPUT
-            echo "Using TestPyPI (release from test branch)"
-          elif [[ "$BRANCH" == "main" ]] && [[ "$RELEASE_NAME" == v* ]]; then
-            echo "repository-url=https://upload.pypi.org/legacy/" >> $GITHUB_OUTPUT
-            echo "use-test-pypi=false" >> $GITHUB_OUTPUT
-            echo "Using PyPI (release from main branch with v-prefixed name)"
+          if [[ "$TAG_NAME" == v* ]]; then
+            VERSION="${TAG_NAME#v}"
+            TARGET_REPO="https://upload.pypi.org/legacy/"
+            USE_TESTPYPI=false
+          elif [[ "$TAG_NAME" == test-* ]]; then
+            VERSION="${TAG_NAME#test-}"
+            TARGET_REPO="https://test.pypi.org/legacy/"
+            USE_TESTPYPI=true
           else
-            echo "Error: Release from 'main' branch must have a release name starting with 'v'. Current release name: $RELEASE_NAME"
+            echo "Invalid tag name. Must start with 'v' or 'test-'."
             exit 1
           fi
 
-      - name: Debug repository configuration
-        run: |
-          echo "Repository URL: ${{ steps.repo.outputs.repository-url }}"
-          echo "Use TestPyPI: ${{ steps.repo.outputs.use-test-pypi }}"
-          echo "Package files:"
-          ls -la dist/
+          echo "Derived version: $VERSION"
+          echo "repository-url=$TARGET_REPO" >> $GITHUB_OUTPUT
+          echo "use-test-pypi=$USE_TESTPYPI" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Publish to TestPyPI (using twine)
-        if: steps.repo.outputs.use-test-pypi == 'true'
+          # Update version in pyproject.toml dynamically
+          python - <<EOF
+          import toml
+          from pathlib import Path
+          file = Path("pyproject.toml")
+          data = toml.loads(file.read_text())
+          data["project"]["version"] = "$VERSION"
+          file.write_text(toml.dumps(data))
+          print(f"pyproject.toml version set to {data['project']['version']}")
+          EOF
+
+      - name: Build and verify package
         run: |
-          echo "Uploading to TestPyPI with verbose output..."
+          python -m build --sdist --wheel
+          unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version"
+          twine check dist/*
+
+      - name: Publish to TestPyPI
+        if: steps.version.outputs.use-test-pypi == 'true'
+        run: |
+          echo "Uploading to TestPyPI..."
           twine upload \
-            --repository-url ${{ steps.repo.outputs.repository-url }} \
+            --repository-url ${{ steps.version.outputs.repository-url }} \
             --username __token__ \
             --password ${{ secrets.TEST_PYPI_API_TOKEN }} \
-            --verbose \
             --skip-existing \
             dist/*
 
-      - name: Publish to PyPI (using action)
-        if: steps.repo.outputs.use-test-pypi != 'true'
+      - name: Publish to PyPI
+        if: steps.version.outputs.use-test-pypi != 'true'
         uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          repository-url: ${{ steps.repo.outputs.repository-url }}
+          repository-url: ${{ steps.version.outputs.repository-url }}
           packages-dir: dist
           verbose: true
