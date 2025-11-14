@@ -3,8 +3,8 @@ name: Publish Plugin to PyPI or TestPyPI
 on:
   push:
     tags:
-      - 'v*'       # e.g. v1.0.0 → publish to PyPI
-      - 'test-*'   # e.g. test-1.0.0 → publish to TestPyPI
+      - 'v*'       # e.g. v1.0.0 → publish to PyPI (if on main)
+      - 'test-*'   # e.g. test-1.0.0 → publish to TestPyPI (if on test)
 
 jobs:
   build-and-publish:
@@ -18,93 +18,104 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # needed for branch detection + versioning
+          fetch-depth: 0  # needed for branch detection
 
+      # Identify which branch this tag belongs to
       - name: Determine branch containing this tag
         id: branch
         run: |
           BRANCH=$(git branch -r --contains $GITHUB_SHA | grep -Eo 'origin/(main|test)' | head -n1 | sed 's|origin/||')
-          echo "Tag belongs to branch: $BRANCH"
+          echo "Detected branch: $BRANCH"
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
-      # Only continue if tag is on main or test branch
-      - name: Stop if tag not from main or test
-        if: steps.branch.outputs.branch == ''
+      # Validate tag and branch combination
+      - name: Validate tag and branch conditions
+        id: validate
         run: |
-          echo "This tag does not point to a commit on 'main' or 'test'. Skipping publish."
-          exit 0
+          TAG_NAME="${GITHUB_REF_NAME}"
+          BRANCH="${{ steps.branch.outputs.branch }}"
+          echo "Tag: $TAG_NAME"
+          echo "Branch: $BRANCH"
+
+          # Initialize flags
+          USE_TESTPYPI=false
+          TARGET_REPO=""
+
+          if [[ "$TAG_NAME" == v* ]] && [[ "$BRANCH" == "main" ]]; then
+            VERSION="${TAG_NAME#v}"
+            TARGET_REPO="https://upload.pypi.org/legacy/"
+            USE_TESTPYPI=false
+            echo "Valid release: PyPI ($VERSION)"
+          elif [[ "$TAG_NAME" == test-* ]] && [[ "$BRANCH" == "test" ]]; then
+            VERSION="${TAG_NAME#test-}"
+            TARGET_REPO="https://test.pypi.org/legacy/"
+            USE_TESTPYPI=true
+            echo "Valid release: TestPyPI ($VERSION)"
+          else
+            echo "Invalid combination."
+            echo "Tags starting with 'v' must be on 'main', and 'test-*' tags must be on 'test'."
+            exit 0
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "repository-url=$TARGET_REPO" >> $GITHUB_OUTPUT
+          echo "use-test-pypi=$USE_TESTPYPI" >> $GITHUB_OUTPUT
 
       - name: Set up Python
+        if: steps.validate.outputs.version != ''
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install build tools
+        if: steps.validate.outputs.version != ''
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade build setuptools wheel twine toml
 
       - name: Clean old build artifacts
+        if: steps.validate.outputs.version != ''
         run: rm -rf dist build *.egg-info
 
-      - name: Derive version and target repository
-        id: version
+      - name: Inject version from tag
+        if: steps.validate.outputs.version != ''
         run: |
-          TAG_NAME="${GITHUB_REF_NAME}"
-          echo "Processing tag: $TAG_NAME"
-
-          if [[ "$TAG_NAME" == v* ]]; then
-            VERSION="${TAG_NAME#v}"
-            TARGET_REPO="https://upload.pypi.org/legacy/"
-            USE_TESTPYPI=false
-          elif [[ "$TAG_NAME" == test-* ]]; then
-            VERSION="${TAG_NAME#test-}"
-            TARGET_REPO="https://test.pypi.org/legacy/"
-            USE_TESTPYPI=true
-          else
-            echo "Invalid tag name. Must start with 'v' or 'test-'."
-            exit 1
-          fi
-
-          echo "Derived version: $VERSION"
-          echo "repository-url=$TARGET_REPO" >> $GITHUB_OUTPUT
-          echo "use-test-pypi=$USE_TESTPYPI" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-          # Update version in pyproject.toml dynamically
+          VERSION="${{ steps.validate.outputs.version }}"
+          echo "Updating pyproject.toml version to $VERSION"
           python - <<EOF
           import toml
           from pathlib import Path
-          file = Path("pyproject.toml")
-          data = toml.loads(file.read_text())
+          pyproject = Path("pyproject.toml")
+          data = toml.loads(pyproject.read_text())
           data["project"]["version"] = "$VERSION"
-          file.write_text(toml.dumps(data))
-          print(f"pyproject.toml version set to {data['project']['version']}")
+          pyproject.write_text(toml.dumps(data))
+          print(f"✅ pyproject.toml version set to {data['project']['version']}")
           EOF
 
       - name: Build and verify package
+        if: steps.validate.outputs.version != ''
         run: |
           python -m build --sdist --wheel
           unzip -p dist/*.whl '*.dist-info/METADATA' | grep -E "Name|Version"
           twine check dist/*
 
       - name: Publish to TestPyPI
-        if: steps.version.outputs.use-test-pypi == 'true'
+        if: steps.validate.outputs.use-test-pypi == 'true'
         run: |
-          echo "Uploading to TestPyPI..."
+          echo "🚀 Uploading to TestPyPI..."
           twine upload \
-            --repository-url ${{ steps.version.outputs.repository-url }} \
+            --repository-url ${{ steps.validate.outputs.repository-url }} \
             --username __token__ \
             --password ${{ secrets.TEST_PYPI_API_TOKEN }} \
             --skip-existing \
             dist/*
 
       - name: Publish to PyPI
-        if: steps.version.outputs.use-test-pypi != 'true'
+        if: steps.validate.outputs.use-test-pypi != 'true' && steps.validate.outputs.version != ''
         uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          repository-url: ${{ steps.version.outputs.repository-url }}
+          repository-url: ${{ steps.validate.outputs.repository-url }}
           packages-dir: dist
           verbose: true
