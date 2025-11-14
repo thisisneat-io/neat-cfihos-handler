@@ -25,7 +25,8 @@ dependencies = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["cognite*"]
+include = ["cognite*", "cognite.*"]
+namespaces = true
 
 [dependency-groups]
 dev = [
