@@ -12,13 +12,27 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write  # Required for trusted publishing (OIDC)
+      id-token: write  # for OIDC trusted publishing
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # required for setuptools versioning if ever added later
+          fetch-depth: 0  # needed for branch detection + versioning
+
+      - name: Determine branch containing this tag
+        id: branch
+        run: |
+          BRANCH=$(git branch -r --contains $GITHUB_SHA | grep -Eo 'origin/(main|test)' | head -n1 | sed 's|origin/||')
+          echo "Tag belongs to branch: $BRANCH"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      # Only continue if tag is on main or test branch
+      - name: Stop if tag not from main or test
+        if: steps.branch.outputs.branch == ''
+        run: |
+          echo "This tag does not point to a commit on 'main' or 'test'. Skipping publish."
+          exit 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,11 +47,11 @@ jobs:
       - name: Clean old build artifacts
         run: rm -rf dist build *.egg-info
 
-      - name: Derive version from tag
+      - name: Derive version and target repository
         id: version
         run: |
           TAG_NAME="${GITHUB_REF_NAME}"
-          echo "Tag: $TAG_NAME"
+          echo "Processing tag: $TAG_NAME"
 
           if [[ "$TAG_NAME" == v* ]]; then
             VERSION="${TAG_NAME#v}"
@@ -48,7 +62,7 @@ jobs:
             TARGET_REPO="https://test.pypi.org/legacy/"
             USE_TESTPYPI=true
           else
-            echo "Invalid tag name. Must start with v or test-"
+            echo "Invalid tag name. Must start with 'v' or 'test-'."
             exit 1
           fi
 
@@ -57,15 +71,15 @@ jobs:
           echo "use-test-pypi=$USE_TESTPYPI" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-          # Inject version into pyproject.toml
+          # Update version in pyproject.toml dynamically
           python - <<EOF
           import toml
           from pathlib import Path
-          path = Path("pyproject.toml")
-          data = toml.loads(path.read_text())
+          file = Path("pyproject.toml")
+          data = toml.loads(file.read_text())
           data["project"]["version"] = "$VERSION"
-          path.write_text(toml.dumps(data))
-          print(f"Updated pyproject.toml version to {data['project']['version']}")
+          file.write_text(toml.dumps(data))
+          print(f"pyproject.toml version set to {data['project']['version']}")
           EOF
 
       - name: Build and verify package
