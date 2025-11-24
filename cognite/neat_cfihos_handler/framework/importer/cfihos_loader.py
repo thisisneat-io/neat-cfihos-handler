@@ -49,6 +49,7 @@ class cfihosTypeTag:
     entities_attrib_abs_fpath: str = field(default="", init=False)
     property_metadata_abs_fpath: str = field(default="", init=False)
 
+    # TODO: consider removing this because FCC are not part of tags and equipment classes
     # file containing the first class citizens properties' attributes
     entity_first_class_attributes_fpath: str = field(default="", init=False)
 
