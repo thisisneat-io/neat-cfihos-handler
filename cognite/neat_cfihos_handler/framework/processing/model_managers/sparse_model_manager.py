@@ -58,7 +58,11 @@ class SparseCfihosManager(BaseCfihosManager):
         self.dms_identifire = self.processor_config["dms_identifire"]
         self.processor_type = self.processor_config["processor_type"]
         self.model_processor = SparsePropertiesProcessor(
-            **self._processor_config, model_type=model_type
+            **self._processor_config,
+            model_type=model_type,
+            add_scalar_properties_for_direct_relations=self.processor_config[
+                "add_scalar_properties_for_direct_relations"
+            ],
         )
         self.model_processor.process_and_collect_models()
         self._model_properties = self.model_processor.model_properties
@@ -105,6 +109,7 @@ class SparseCfihosManager(BaseCfihosManager):
             "dms_identifire",
             "scope_config",
             "processor_type",
+            "add_scalar_properties_for_direct_relations",
         ]
         missing_keys = [
             key for key in required_keys if key not in self.processor_config
