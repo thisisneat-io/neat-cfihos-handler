@@ -6,7 +6,7 @@ CFIHOS-00000004,comissioning unit,"CogniteDescribable","cdf_cdm","v1","name and 
 CFIHOS-00000006,maintenance unit,"CogniteDescribable","cdf_cdm","v1","name and description of the maintenance unit"
 CFIHOS-00000007,maintenance system,"CogniteDescribable","cdf_cdm","v1","name and description of the maintenance system"
 CFIHOS-00000008,model part,"CogniteDescribable","cdf_cdm","v1","name and description of the model part"
-CFIHOS-00000009,company,"CogniteDescribable","cdf_cdm","v1","name and description of the company"ß
+CFIHOS-00000009,company,"CogniteDescribable","cdf_cdm","v1","name and description of the company"
 CFIHOS-00000010,corrosion loop,"CogniteDescribable","cdf_cdm","v1","name and description of the corrosion loop"
 CFIHOS-00000011,corrosion loop type,"CogniteDescribable","cdf_cdm","v1","name and description of the corrosion loop type"
 CFIHOS-00000012,equipment,"CogniteEquipment","cdf_cdm","v1","equipment instance extension representing CFIHOS equipment "
