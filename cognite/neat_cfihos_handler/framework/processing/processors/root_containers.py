@@ -46,6 +46,14 @@ logging = log_init(f"{__name__}", "i")
 
 
 @dataclass
+class CfihosClassNode:
+    """Class node for the CFIHOS class tree."""
+
+    NodeId: str
+    ParentNodeId: str
+
+
+@dataclass
 class RootContainersProcessor(BaseProcessor):
     """Processor class for handling model processing.
 
