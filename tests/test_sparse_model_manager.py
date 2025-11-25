@@ -27,6 +27,7 @@ class TestSparseCfihosManager:
             "data_model_name": "test_model",
             "data_model_description": "test description",
             "data_model_external_id": "test_external_id",
+            "add_scalar_properties_for_direct_relations": False,
             "dms_identifire": "test_dms",
             "processor_type": "sparse",
             "scope_config": {},
@@ -49,6 +50,7 @@ class TestSparseCfihosManager:
             "dms_identifire": "test_dms",
             "processor_type": "sparse",
             "scope_config": {},
+            "add_scalar_properties_for_direct_relations": False,
             "scopes": [
                 {
                     "scope_model_external_id": "test_scope_model_external_id",
