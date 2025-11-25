@@ -215,6 +215,8 @@ class RootContainersProcessor(BaseProcessor):
             .fillna(False)
         )
 
+        # Step 0: create the denormalization mapping for the root containers
+        self._create_denormalization_mapping()
         # Step 1: build the full inheritance of entities
         self._build_entities_full_inheritance()
         # Step 2: extend the direct relations properties with sclarified properties
@@ -1060,3 +1062,209 @@ class RootContainersProcessor(BaseProcessor):
 
     def _loggingCritical(self, msg: str) -> None:
         logging.critical(f"[Model Processor] {msg}")
+
+    def _create_denormalization_mapping(self) -> dict[str, str]:
+        """Create a dictionary mapping entity IDs to their denormalized parent IDs.
+
+        This function denormalizes all classes under the first children of TCFIHOS-30000311
+        (for tags) or ECFIHOS-30000311 (for equipment), assigning their properties to their
+        parent nodes. Classes in tag_node_list or equipment_node_list are treated as root nodes,
+        and their children are denormalized under them instead.
+
+        Returns:
+            dict[str, str]: Dictionary mapping entity_id -> denormalized_parent_id
+        """
+        # Hard-coded root node lists
+        tag_node_list = [
+            "TCFIHOS-30000550",
+            "TCFIHOS-30000834",
+            "TCFIHOS-30000653",
+            "TCFIHOS-30000295",
+        ]  # Add specific tag nodes here, e.g., ["TCFIHOS-30000319"]
+        equipment_node_list = [
+            "ECFIHOS-30000550",
+            "ECFIHOS-30000834",
+            "ECFIHOS-30000653",
+            "ECFIHOS-30000295",
+        ]  # Add specific equipment nodes here
+
+        # Root nodes for each type
+        TAG_ROOT = "TCFIHOS-30000311"
+        EQUIPMENT_ROOT = "ECFIHOS-30000311"
+
+        denormalization_map = {}
+
+        # Build parent-child mapping and entity type mapping
+        entity_to_parents = {}
+        entity_to_type = {}
+        entity_to_children = {}
+
+        for _, row in self._df_entities.iterrows():
+            entity_id = row[EntityStructure.ID]
+            entity_type = row.get("type", None)
+            # Handle None, empty string, or NaN
+            if entity_type is None or (
+                isinstance(entity_type, str) and not entity_type.strip()
+            ):
+                entity_type = None
+            entity_to_type[entity_id] = entity_type
+
+            parents = row[EntityStructure.INHERITS_FROM_ID]
+            if parents is not None and isinstance(parents, list):
+                entity_to_parents[entity_id] = [p for p in parents if p is not None]
+            else:
+                entity_to_parents[entity_id] = []
+
+            # Initialize children dict
+            entity_to_children[entity_id] = []
+
+        # Build children mapping
+        for entity_id, parents in entity_to_parents.items():
+            for parent in parents:
+                if parent in entity_to_children:
+                    entity_to_children[parent].append(entity_id)
+
+        def get_all_descendants(entity_id: str, visited: set = None) -> set[str]:
+            """Get all descendant entity IDs recursively."""
+            if visited is None:
+                visited = set()
+            if entity_id in visited:
+                return set()
+            visited.add(entity_id)
+
+            descendants = set()
+            for child in entity_to_children.get(entity_id, []):
+                descendants.add(child)
+                descendants.update(get_all_descendants(child, visited))
+            return descendants
+
+        def determine_entity_type(entity_id: str) -> str:
+            """Determine entity type from inheritance path if not explicitly set."""
+            entity_type = entity_to_type.get(entity_id)
+            if entity_type:
+                return entity_type
+
+            # Try to determine type from inheritance path
+            visited = set()
+
+            def find_root_type(current_id: str) -> str:
+                """Find the root type by traversing up the inheritance tree."""
+                if current_id in visited:
+                    return None
+                visited.add(current_id)
+
+                if current_id == TAG_ROOT:
+                    return "tag"
+                elif current_id == EQUIPMENT_ROOT:
+                    return "equipment"
+                elif current_id.startswith("TCFIHOS-"):
+                    return "tag"
+                elif current_id.startswith("ECFIHOS-"):
+                    return "equipment"
+
+                parents = entity_to_parents.get(current_id, [])
+                for parent in parents:
+                    result = find_root_type(parent)
+                    if result:
+                        return result
+                return None
+
+            determined_type = find_root_type(entity_id)
+            if determined_type:
+                entity_to_type[entity_id] = determined_type
+                return determined_type
+            return None
+
+        def find_ancestor_in_root_list(entity_id: str, root_list: list) -> str:
+            """Find the closest ancestor that is in the root node list.
+
+            Note: This function does not return the entity itself even if it's in the root list.
+            It only returns ancestors, so that root list entities are not denormalized to themselves.
+            """
+            visited = set()
+            queue = [entity_id]
+
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+
+                parents = entity_to_parents.get(current, [])
+                for parent in parents:
+                    if parent in root_list:
+                        return parent
+                    queue.append(parent)
+
+            return None
+
+        def find_first_child_ancestor(entity_id: str, first_children: list) -> str:
+            """Find which first child this entity descends from."""
+            visited = set()
+            queue = [entity_id]
+
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+
+                if current in first_children:
+                    return current
+
+                parents = entity_to_parents.get(current, [])
+                for parent in parents:
+                    queue.append(parent)
+
+            return None
+
+        def process_type(root_node: str, root_node_list: list, entity_type_name: str):
+            """Process denormalization for a specific type (tag or equipment)."""
+            if root_node not in entity_to_children:
+                return
+
+            # Find first children of the root node
+            first_children = entity_to_children[root_node]
+
+            # Get all entities of this type
+            entities_to_process = []
+            for entity_id in entity_to_type:
+                entity_type = determine_entity_type(entity_id)
+                if entity_type == entity_type_name:
+                    entities_to_process.append(entity_id)
+
+            # Process each entity
+            for entity_id in entities_to_process:
+                # Skip if already mapped
+                if entity_id in denormalization_map:
+                    continue
+
+                # Add entities that are themselves in the root node list, mapping to themselves
+                if entity_id in root_node_list:
+                    denormalization_map[entity_id] = entity_id
+                    continue
+
+                # Skip first children themselves (they stay as they are)
+                if entity_id in first_children:
+                    continue
+
+                # Check if any of its ancestors is in root_node_list
+                ancestor_root = find_ancestor_in_root_list(entity_id, root_node_list)
+
+                if ancestor_root:
+                    # Denormalize to the root node from the list
+                    denormalization_map[entity_id] = ancestor_root
+                else:
+                    # Find which first child this entity descends from
+                    first_child = find_first_child_ancestor(entity_id, first_children)
+                    if first_child:
+                        # Denormalize to the first child
+                        denormalization_map[entity_id] = first_child
+
+        # Process tags
+        process_type(TAG_ROOT, tag_node_list, "tag")
+
+        # Process equipment
+        process_type(EQUIPMENT_ROOT, equipment_node_list, "equipment")
+
+        return denormalization_map
