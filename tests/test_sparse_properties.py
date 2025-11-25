@@ -1429,6 +1429,26 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
         processor._property_groupings = ["CFIHOS_1", "CFIHOS_4"]
         return processor
 
+    @pytest.fixture
+    def processor_with_scalar_properties_true(self, minimal_processor_config):
+        """Create a SparsePropertiesProcessor with add_scalar_properties_for_direct_relations=True."""
+        processor = SparsePropertiesProcessor(
+            **minimal_processor_config,
+            add_scalar_properties_for_direct_relations=True,
+        )
+        processor._property_groupings = ["CFIHOS_1", "CFIHOS_4"]
+        return processor
+
+    @pytest.fixture
+    def processor_with_scalar_properties_false(self, minimal_processor_config):
+        """Create a SparsePropertiesProcessor with add_scalar_properties_for_direct_relations=False."""
+        processor = SparsePropertiesProcessor(
+            **minimal_processor_config,
+            add_scalar_properties_for_direct_relations=False,
+        )
+        processor._property_groupings = ["CFIHOS_1", "CFIHOS_4"]
+        return processor
+
     @pytest.mark.parametrize(
         "property_id,expected_group",
         [
@@ -1436,13 +1456,69 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
             ("CFIHOS_10000023", "CFIHOS_1_10000001_10000101"),  # Same group as 10000001
             ("CFIHOS_40000023", "CFIHOS_4_40000001_40000101"),
             ("CFIHOS_10000150", "CFIHOS_1_10000101_10000201"),
-            (
-                "CFIHOS_10000001_rel",
-                "CFIHOS_1_10000001_10000101_ext",
-            ),  # With _ext suffix
         ],
     )
     def test_assign_property_group(self, processor, property_id, expected_group):
         """Test that _assign_property_group correctly assigns property groups for different property IDs."""
         result = processor._assign_property_group(property_id)
         assert result == expected_group
+
+    @pytest.mark.parametrize(
+        "property_id,expected_group",
+        [
+            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_10000023_rel", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_40000023_rel", "CFIHOS_4_40000001_40000101_ext"),
+            ("CFIHOS_10000001_uom", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_10000023_uom", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000101_ext"),
+        ],
+    )
+    def test_assign_property_group_with_scalar_properties_true_for_rel_and_uom(
+        self, processor_with_scalar_properties_true, property_id, expected_group
+    ):
+        """Test that when add_scalar_properties_for_direct_relations=True, properties ending with _rel or _uom get _ext suffix."""
+        result = processor_with_scalar_properties_true._assign_property_group(
+            property_id
+        )
+        assert result == expected_group
+
+    @pytest.mark.parametrize(
+        "property_id,expected_group",
+        [
+            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000101"),
+            ("CFIHOS_10000023_rel", "CFIHOS_1_10000001_10000101"),
+            ("CFIHOS_40000023_rel", "CFIHOS_4_40000001_40000101"),
+            ("CFIHOS_10000001_uom", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_10000023_uom", "CFIHOS_1_10000001_10000101_ext"),
+            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000101_ext"),
+        ],
+    )
+    def test_assign_property_group_with_scalar_properties_false_for_rel_and_uom(
+        self, processor_with_scalar_properties_false, property_id, expected_group
+    ):
+        """Test that when add_scalar_properties_for_direct_relations=False, properties ending with _rel do not get _ext suffix. uom properties are unaffected."""
+        result = processor_with_scalar_properties_false._assign_property_group(
+            property_id
+        )
+        assert result == expected_group
+
+    def test_assign_property_group_regular_properties_unaffected_by_scalar_config(
+        self,
+        processor_with_scalar_properties_true,
+        processor_with_scalar_properties_false,
+    ):
+        """Test that regular properties (not ending with _rel or _uom) are unaffected by add_scalar_properties_for_direct_relations config."""
+        property_id = "CFIHOS_10000001"
+        expected_group = "CFIHOS_1_10000001_10000101"
+
+        result_true = processor_with_scalar_properties_true._assign_property_group(
+            property_id
+        )
+        result_false = processor_with_scalar_properties_false._assign_property_group(
+            property_id
+        )
+
+        assert result_true == expected_group
+        assert result_false == expected_group
+        assert result_true == result_false
