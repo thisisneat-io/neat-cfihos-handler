@@ -574,7 +574,9 @@ class SparsePropertiesProcessor(BaseProcessor):
                     entities[property_group_id]["properties"].append(
                         entity_property_row
                     )
-                    properties.append(entity_property_row)
+                    properties.append(
+                        entity_property_row
+                    )  # TODO: check if this is needed
 
         entities["EntityTypeGroup"] = {
             EntityStructure.ID: "EntityTypeGroup",
