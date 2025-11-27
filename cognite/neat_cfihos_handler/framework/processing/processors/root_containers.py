@@ -64,6 +64,9 @@ class RootContainersProcessor(BaseProcessor):
 
     model_type: str = field(default=SparseModelType.CONTAINERS)
     model_processors: list[CfihosModelLoader] = field(default_factory=list, init=False)
+    tag_and_equipment_classes_to_root_nodes: dict[str, str] = field(
+        default_factory=dict, init=False
+    )
 
     def __post_init__(self):
         """Initialize the processor but don't run setup methods yet.
@@ -471,6 +474,48 @@ class RootContainersProcessor(BaseProcessor):
             ignore_index=True,
         )
 
+    def _create_container_model_entities2(self):
+        """Create and validate model properties from the collected entity properties.
+
+        This function processes the entity
+        properties DataFrame, checks for consistency, and constructs a DataFrame of unique model properties.
+
+        This method performs the following steps:
+        - Extracts unique properties from the entity properties DataFrame.
+        - Validates that each property has consistent attribute values across non-first-class citizen entries.
+        - Constructs property rows and appends them to a list of properties.
+        - Converts the list of properties into a DataFrame and updates the model properties dictionary.
+
+        Returns:
+            None
+        """
+        properties = []
+        entities: dict[str, list[dict[str, str]]] = {}
+        # unique_properties = self._df_entity_properties[PropertyStructure.ID].unique()
+        tag_equipment_class_entity_properties = self._df_entity_properties.loc[
+            (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
+            & (
+                ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
+                    [Relations.EDGE, Relations.REVERSE]
+                )
+            )
+            & (
+                self._df_entity_properties[EntityStructure.ID].str.startswith(
+                    ("T", "E")
+                )
+            )
+        ]
+        lst_group_properties = []
+        for _, entity_property in tag_equipment_class_entity_properties.iterrows():
+            entity_id = self._assign_root_nodes_to_tag_and_equipment_classes(
+                entity_property[EntityStructure.ID]
+            )
+            lst_group_properties.append(
+                {entity_property[EntityStructure.ID]: entity_id}
+            )
+
+        print("xx")
+
     def _create_container_model_entities(self):
         """Create and validate model properties from the collected entity properties.
 
@@ -494,6 +539,11 @@ class RootContainersProcessor(BaseProcessor):
             & (
                 ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
                     [Relations.EDGE, Relations.REVERSE]
+                )
+            )
+            & (
+                self._df_entity_properties[EntityStructure.ID].str.startswith(
+                    ("T", "E")
                 )
             )
         ][PropertyStructure.ID].unique()
@@ -532,6 +582,9 @@ class RootContainersProcessor(BaseProcessor):
                             raise NeatValueError(
                                 f"Found properties '{col_name}' with lacking or multiple values: {data}"
                             )
+                    prop_entity_id = df_subset[EntityStructure.ID].unique()[
+                        0
+                    ]  # TODO: check if there is a better way to get the entity id
                     prop_row = {}
                     if columns_to_check:
                         for key, value in columns_to_check.items():
@@ -545,8 +598,14 @@ class RootContainersProcessor(BaseProcessor):
                     prop_row[PropertyStructure.DESCRIPTION] = df_subset[
                         PropertyStructure.DESCRIPTION
                     ].unique()[0]
-                    property_group_id = self._assign_property_group(
-                        prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
+                    property_group_id = (
+                        self._assign_root_nodes_to_tag_and_equipment_classes(
+                            prop_entity_id
+                        )
+                        if prop_entity_id.startswith(("T", "E"))
+                        else self._assign_property_group(
+                            prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
+                        )
                     )
                     entity_property_row = self._create_property_row(
                         prop_row, property_group=property_group_id
@@ -1063,7 +1122,7 @@ class RootContainersProcessor(BaseProcessor):
     def _loggingCritical(self, msg: str) -> None:
         logging.critical(f"[Model Processor] {msg}")
 
-    def _create_denormalization_mapping(self) -> dict[str, str]:
+    def _create_denormalization_mapping(self) -> None:
         """Create a dictionary mapping entity IDs to their denormalized parent IDs.
 
         This function denormalizes all classes under the first children of TCFIHOS-30000311
@@ -1077,9 +1136,8 @@ class RootContainersProcessor(BaseProcessor):
         # Hard-coded root node lists
         tag_node_list = [
             "TCFIHOS-30000550",
-            "TCFIHOS-30000834",
-            "TCFIHOS-30000653",
-            "TCFIHOS-30000295",
+            "TCFIHOS-30000390",
+            "TCFIHOS-30000594",
         ]  # Add specific tag nodes here, e.g., ["TCFIHOS-30000319"]
         equipment_node_list = [
             "ECFIHOS-30000550",
@@ -1124,19 +1182,19 @@ class RootContainersProcessor(BaseProcessor):
                 if parent in entity_to_children:
                     entity_to_children[parent].append(entity_id)
 
-        def get_all_descendants(entity_id: str, visited: set = None) -> set[str]:
-            """Get all descendant entity IDs recursively."""
-            if visited is None:
-                visited = set()
-            if entity_id in visited:
-                return set()
-            visited.add(entity_id)
+        # def get_all_descendants(entity_id: str, visited: set = None) -> set[str]:
+        #     """Get all descendant entity IDs recursively."""
+        #     if visited is None:
+        #         visited = set()
+        #     if entity_id in visited:
+        #         return set()
+        #     visited.add(entity_id)
 
-            descendants = set()
-            for child in entity_to_children.get(entity_id, []):
-                descendants.add(child)
-                descendants.update(get_all_descendants(child, visited))
-            return descendants
+        #     descendants = set()
+        #     for child in entity_to_children.get(entity_id, []):
+        #         descendants.add(child)
+        #         descendants.update(get_all_descendants(child, visited))
+        #     return descendants
 
         def determine_entity_type(entity_id: str) -> str:
             """Determine entity type from inheritance path if not explicitly set."""
@@ -1263,8 +1321,28 @@ class RootContainersProcessor(BaseProcessor):
 
         # Process tags
         process_type(TAG_ROOT, tag_node_list, "tag")
+        # # Process equipment
+        # process_type(EQUIPMENT_ROOT, equipment_node_list, "equipment")
+        self.tag_and_equipment_classes_to_root_nodes = denormalization_map
 
-        # Process equipment
-        process_type(EQUIPMENT_ROOT, equipment_node_list, "equipment")
+    def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str) -> str:
+        """Returns the root node entity ID assigned to the given tag or equipment class entity ID.
 
-        return denormalization_map
+        Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
+        If a root node is found, returns its entity ID with any leading 'T' or 'E' character removed.
+        Returns None if the entity ID is not found in the mapping.
+
+        Args:
+            enitity_id (str): The tag or equipment class entity ID to look up.
+
+        Returns:
+            str or None: The assigned root node entity ID with leading type identifier stripped, or None if not mapped.
+        """
+        enitiy_root_node = self.tag_and_equipment_classes_to_root_nodes.get(
+            enitity_id, None
+        )
+        return (
+            enitiy_root_node[1:]
+            if enitiy_root_node and enitiy_root_node[0] in ("T", "E")
+            else enitiy_root_node
+        )
