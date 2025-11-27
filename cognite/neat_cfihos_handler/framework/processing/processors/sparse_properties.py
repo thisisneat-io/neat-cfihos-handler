@@ -292,7 +292,7 @@ class SparsePropertiesProcessor(BaseProcessor):
             ),
             PropertyStructure.INHERITED: False,
             PropertyStructure.PROPERTY_GROUP: property_group,
-            PropertyStructure.CUSTOM_PROPERTY: is_custom_property,
+            PropertyStructure.CUSTOM_PROPERTY: is_custom_property,  # TODO: remove this - deprecated
             PropertyStructure.FIRSTCLASSCITIZEN: is_first_class_citzen,  # label the first class citizen
             EntityStructure.ID: property_item.get(EntityStructure.ID, None),
             PropertyStructure.UNIQUE_VALIDATION_ID: (
@@ -387,7 +387,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                 (
                     self._df_entity_properties.loc[
                         lambda d: d[PropertyStructure.PROPERTY_TYPE]
-                        == "ENTITY_RELATION"
+                        == "ENTITY_RELATION"  # TODO: use constants
                     ]
                     .assign(
                         **{
@@ -401,7 +401,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                             .astype(str)
                             .fillna("")
                             .str.replace("_rel", "", regex=False),
-                            PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
+                            PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",  # TODO: use constants
                             PropertyStructure.TARGET_TYPE: lambda x: x[
                                 PropertyStructure.ORIGINAL_TARGET_TYPE
                             ],
