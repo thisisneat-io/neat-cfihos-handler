@@ -541,16 +541,17 @@ class RootContainersProcessor(BaseProcessor):
                     [Relations.EDGE, Relations.REVERSE]
                 )
             )
-            & (
-                self._df_entity_properties[EntityStructure.ID].str.startswith(
-                    ("T", "E")
-                )
-            )
+            # & (
+            #     # self._df_entity_properties[EntityStructure.ID].str.startswith(
+            #     #     ("T", "E")
+            #     # )
+            # )
         ][PropertyStructure.ID].unique()
         # Check that all target types are present
         for prop in unique_properties:
             df_property_subset = self._df_entity_properties.loc[
-                self._df_entity_properties[PropertyStructure.ID] == prop
+                (self._df_entity_properties[PropertyStructure.ID] == prop)
+                & (self._df_entity_properties[EntityStructure.ID].notna())
             ]
             df_property_subset_groups = df_property_subset.groupby(
                 PropertyStructure.PROPERTY_TYPE
@@ -598,15 +599,23 @@ class RootContainersProcessor(BaseProcessor):
                     prop_row[PropertyStructure.DESCRIPTION] = df_subset[
                         PropertyStructure.DESCRIPTION
                     ].unique()[0]
-                    property_group_id = (
-                        self._assign_root_nodes_to_tag_and_equipment_classes(
-                            prop_entity_id
+                    try:
+                        property_group_id = (
+                            self._assign_root_nodes_to_tag_and_equipment_classes(
+                                prop_entity_id
+                            )
+                            if prop_entity_id.startswith(("T", "E"))
+                            else self._assign_property_group(
+                                prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
+                            )
                         )
-                        if prop_entity_id.startswith(("T", "E"))
-                        else self._assign_property_group(
+                    except Exception as e:
+                        logging.error(
+                            f"Error assigning root nodes to tag and equipment classes: {e}"
+                        )
+                        property_group_id = self._assign_property_group(
                             prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
                         )
-                    )
                     entity_property_row = self._create_property_row(
                         prop_row, property_group=property_group_id
                     )
@@ -1127,24 +1136,19 @@ class RootContainersProcessor(BaseProcessor):
 
         This function denormalizes all classes under the first children of TCFIHOS-30000311
         (for tags) or ECFIHOS-30000311 (for equipment), assigning their properties to their
-        parent nodes. Classes in tag_node_list or equipment_node_list are treated as root nodes,
-        and their children are denormalized under them instead.
+        parent nodes. Classes in node_list are treated as root nodes, and their children
+        are denormalized under them instead.
 
-        Returns:
-            dict[str, str]: Dictionary mapping entity_id -> denormalized_parent_id
+        The denormalization map uses CFIHOS codes without T/E prefix for both keys and values.
         """
-        # Hard-coded root node lists
-        tag_node_list = [
-            "TCFIHOS-30000550",
-            "TCFIHOS-30000390",
-            "TCFIHOS-30000594",
-        ]  # Add specific tag nodes here, e.g., ["TCFIHOS-30000319"]
-        equipment_node_list = [
-            "ECFIHOS-30000550",
-            "ECFIHOS-30000834",
-            "ECFIHOS-30000653",
-            "ECFIHOS-30000295",
-        ]  # Add specific equipment nodes here
+        # Hard-coded root node list (CFIHOS codes without T/E prefix)
+        node_list = [
+            "CFIHOS-30000550",
+            "CFIHOS-30000390",
+            "CFIHOS-30000594",
+            "CFIHOS-30000524",
+            "CFIHOS-30000181",
+        ]
 
         # Root nodes for each type
         TAG_ROOT = "TCFIHOS-30000311"
@@ -1152,20 +1156,12 @@ class RootContainersProcessor(BaseProcessor):
 
         denormalization_map = {}
 
-        # Build parent-child mapping and entity type mapping
+        # Build parent-child mapping
         entity_to_parents = {}
-        entity_to_type = {}
         entity_to_children = {}
 
         for _, row in self._df_entities.iterrows():
             entity_id = row[EntityStructure.ID]
-            entity_type = row.get("type", None)
-            # Handle None, empty string, or NaN
-            if entity_type is None or (
-                isinstance(entity_type, str) and not entity_type.strip()
-            ):
-                entity_type = None
-            entity_to_type[entity_id] = entity_type
 
             parents = row[EntityStructure.INHERITS_FROM_ID]
             if parents is not None and isinstance(parents, list):
@@ -1182,62 +1178,22 @@ class RootContainersProcessor(BaseProcessor):
                 if parent in entity_to_children:
                     entity_to_children[parent].append(entity_id)
 
-        # def get_all_descendants(entity_id: str, visited: set = None) -> set[str]:
-        #     """Get all descendant entity IDs recursively."""
-        #     if visited is None:
-        #         visited = set()
-        #     if entity_id in visited:
-        #         return set()
-        #     visited.add(entity_id)
+        def normalize_cfihos_id(entity_id: str) -> str:
+            """Remove T or E prefix from CFIHOS ID if present."""
+            if (
+                entity_id
+                and entity_id[0] in ("T", "E")
+                and entity_id.startswith(("TCFIHOS-", "ECFIHOS-"))
+            ):
+                return "CFIHOS-" + entity_id.split("-", 1)[1]
+            return entity_id
 
-        #     descendants = set()
-        #     for child in entity_to_children.get(entity_id, []):
-        #         descendants.add(child)
-        #         descendants.update(get_all_descendants(child, visited))
-        #     return descendants
-
-        def determine_entity_type(entity_id: str) -> str:
-            """Determine entity type from inheritance path if not explicitly set."""
-            entity_type = entity_to_type.get(entity_id)
-            if entity_type:
-                return entity_type
-
-            # Try to determine type from inheritance path
-            visited = set()
-
-            def find_root_type(current_id: str) -> str:
-                """Find the root type by traversing up the inheritance tree."""
-                if current_id in visited:
-                    return None
-                visited.add(current_id)
-
-                if current_id == TAG_ROOT:
-                    return "tag"
-                elif current_id == EQUIPMENT_ROOT:
-                    return "equipment"
-                elif current_id.startswith("TCFIHOS-"):
-                    return "tag"
-                elif current_id.startswith("ECFIHOS-"):
-                    return "equipment"
-
-                parents = entity_to_parents.get(current_id, [])
-                for parent in parents:
-                    result = find_root_type(parent)
-                    if result:
-                        return result
-                return None
-
-            determined_type = find_root_type(entity_id)
-            if determined_type:
-                entity_to_type[entity_id] = determined_type
-                return determined_type
-            return None
-
-        def find_ancestor_in_root_list(entity_id: str, root_list: list) -> str:
+        def find_ancestor_in_root_list(
+            entity_id: str, root_list_normalized: set
+        ) -> str:
             """Find the closest ancestor that is in the root node list.
 
-            Note: This function does not return the entity itself even if it's in the root list.
-            It only returns ancestors, so that root list entities are not denormalized to themselves.
+            Returns the normalized CFIHOS ID (without T/E prefix).
             """
             visited = set()
             queue = [entity_id]
@@ -1248,10 +1204,13 @@ class RootContainersProcessor(BaseProcessor):
                     continue
                 visited.add(current)
 
+                # Normalize current and check if it's in root list
+                current_normalized = normalize_cfihos_id(current)
+                if current_normalized in root_list_normalized:
+                    return current_normalized
+
                 parents = entity_to_parents.get(current, [])
                 for parent in parents:
-                    if parent in root_list:
-                        return parent
                     queue.append(parent)
 
             return None
@@ -1276,73 +1235,91 @@ class RootContainersProcessor(BaseProcessor):
 
             return None
 
-        def process_type(root_node: str, root_node_list: list, entity_type_name: str):
-            """Process denormalization for a specific type (tag or equipment)."""
-            if root_node not in entity_to_children:
-                return
+        # Normalize the node_list to a set for faster lookup
+        root_list_normalized = set(node_list)
 
-            # Find first children of the root node
-            first_children = entity_to_children[root_node]
+        # Create a mapping from normalized CFIHOS IDs to their T/E versions for lookup
+        # This helps us check if an entity (in T/E format) is in the root list
+        root_list_actual_ids = set()
+        for entity_id in entity_to_parents:
+            normalized = normalize_cfihos_id(entity_id)
+            if normalized in root_list_normalized:
+                root_list_actual_ids.add(entity_id)
 
-            # Get all entities of this type
-            entities_to_process = []
-            for entity_id in entity_to_type:
-                entity_type = determine_entity_type(entity_id)
-                if entity_type == entity_type_name:
-                    entities_to_process.append(entity_id)
+        # Process both tag and equipment roots together
+        root_nodes = [TAG_ROOT, EQUIPMENT_ROOT]
+        all_first_children = []
 
-            # Process each entity
-            for entity_id in entities_to_process:
-                # Skip if already mapped
-                if entity_id in denormalization_map:
-                    continue
+        for root_node in root_nodes:
+            if root_node in entity_to_children:
+                all_first_children.extend(entity_to_children[root_node])
 
-                # Add entities that are themselves in the root node list, mapping to themselves
-                if entity_id in root_node_list:
-                    denormalization_map[entity_id] = entity_id
-                    continue
+        # Get all entities that start with T or E (tag/equipment entities)
+        entities_to_process = [
+            entity_id
+            for entity_id in entity_to_parents
+            if entity_id.startswith(("TCFIHOS-", "ECFIHOS-"))
+        ]
 
-                # Skip first children themselves (they stay as they are)
-                if entity_id in first_children:
-                    continue
+        # Process each entity
+        for entity_id in entities_to_process:
+            # Normalize the entity ID for the map key
+            entity_key = normalize_cfihos_id(entity_id)
 
-                # Check if any of its ancestors is in root_node_list
-                ancestor_root = find_ancestor_in_root_list(entity_id, root_node_list)
+            # Skip if already mapped
+            if entity_key in denormalization_map:
+                continue
 
-                if ancestor_root:
-                    # Denormalize to the root node from the list
-                    denormalization_map[entity_id] = ancestor_root
-                else:
-                    # Find which first child this entity descends from
-                    first_child = find_first_child_ancestor(entity_id, first_children)
-                    if first_child:
-                        # Denormalize to the first child
-                        denormalization_map[entity_id] = first_child
+            # Check if this entity (or its normalized version) is in the root node list
+            if entity_id in root_list_actual_ids:
+                # Map to itself (normalized)
+                denormalization_map[entity_key] = normalize_cfihos_id(entity_id)
+                continue
 
-        # Process tags
-        process_type(TAG_ROOT, tag_node_list, "tag")
-        # # Process equipment
-        # process_type(EQUIPMENT_ROOT, equipment_node_list, "equipment")
+            # Skip first children themselves (they stay as they are, but we need to map them)
+            if entity_id in all_first_children:
+                # Map first children to themselves (normalized)
+                denormalization_map[entity_key] = normalize_cfihos_id(entity_id)
+                continue
+
+            # Check if any of its ancestors is in root_node_list
+            ancestor_root_normalized = find_ancestor_in_root_list(
+                entity_id, root_list_normalized
+            )
+
+            if ancestor_root_normalized:
+                # Denormalize to the root node from the list (normalized)
+                denormalization_map[entity_key] = ancestor_root_normalized
+            else:
+                # Find which first child this entity descends from
+                first_child = find_first_child_ancestor(entity_id, all_first_children)
+                if first_child:
+                    # Denormalize to the first child (normalized)
+                    denormalization_map[entity_key] = normalize_cfihos_id(first_child)
+
         self.tag_and_equipment_classes_to_root_nodes = denormalization_map
 
     def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str) -> str:
         """Returns the root node entity ID assigned to the given tag or equipment class entity ID.
 
         Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
-        If a root node is found, returns its entity ID with any leading 'T' or 'E' character removed.
+        The mapping uses normalized CFIHOS IDs (without T/E prefix) for both keys and values.
         Returns None if the entity ID is not found in the mapping.
 
         Args:
-            enitity_id (str): The tag or equipment class entity ID to look up.
+            enitity_id (str): The tag or equipment class entity ID to look up (can be TCFIHOS- or ECFIHOS- format).
 
         Returns:
-            str or None: The assigned root node entity ID with leading type identifier stripped, or None if not mapped.
+            str or None: The assigned root node entity ID in normalized CFIHOS- format, or None if not mapped.
         """
-        enitiy_root_node = self.tag_and_equipment_classes_to_root_nodes.get(
-            enitity_id, None
+        # Normalize the entity ID (remove T/E prefix) for lookup
+        normalized_id = enitity_id
+        # NOTE CFIHOS addtions should not start with T or E in order not to confuse the below logic. E.g TOS-30000311 should not be treated as a tag.
+        normalized_id = (
+            enitity_id[1:] if enitity_id.lower().startswith(("t", "e")) else None
         )
-        return (
-            enitiy_root_node[1:]
-            if enitiy_root_node and enitiy_root_node[0] in ("T", "E")
-            else enitiy_root_node
+        # Look up in the denormalization map (which uses normalized IDs)
+        node_group_id = self.tag_and_equipment_classes_to_root_nodes.get(
+            normalized_id, None
         )
+        return node_group_id.replace("-", "_") if node_group_id else None
