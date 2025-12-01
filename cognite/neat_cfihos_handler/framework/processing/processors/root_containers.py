@@ -532,126 +532,94 @@ class RootContainersProcessor(BaseProcessor):
         Returns:
             None
         """
-        properties = []
         entities: dict[str, list[dict[str, str]]] = {}
+        # Track property IDs per property group for efficient duplicate checking
+        property_ids_per_group: dict[str, set[str]] = {}
         # unique_properties = self._df_entity_properties[PropertyStructure.ID].unique()
-        unique_properties = self._df_entity_properties.loc[
+        df_properties = self._df_entity_properties.loc[
             (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
             & (
                 ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
                     [Relations.EDGE, Relations.REVERSE]
                 )
             )
+            & (self._df_entity_properties[EntityStructure.ID].notna())
             # & (
             #     # self._df_entity_properties[EntityStructure.ID].str.startswith(
             #     #     ("T", "E")
             #     # )
             # )
-        ][PropertyStructure.ID].unique()
+        ]
         # Check that all target types are present
-        for prop in unique_properties:
-            df_property_subset = self._df_entity_properties.loc[
-                (self._df_entity_properties[PropertyStructure.ID] == prop)
-                & (self._df_entity_properties[EntityStructure.ID].notna())
-            ]
-            df_property_subset_groups = df_property_subset.groupby(
-                PropertyStructure.PROPERTY_TYPE
+        for _, prop in df_properties.iterrows():                    
+
+            property_group_id = (
+                self._assign_root_nodes_to_tag_and_equipment_classes(
+                    prop[EntityStructure.ID],prop[PropertyStructure.ID]
+                )
+                if prop[EntityStructure.ID].startswith(("T", "E"))
+                else self._assign_property_group(
+                    prop[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
+                )
             )
-            for idx, df_subset in df_property_subset_groups:
-                if len(df_subset) > 0:
-                    columns_to_check = {
-                        PropertyStructure.NAME: df_subset[
-                            PropertyStructure.NAME
-                        ].unique(),
-                        PropertyStructure.DMS_NAME: df_subset[
-                            PropertyStructure.DMS_NAME
-                        ].unique(),
-                        PropertyStructure.TARGET_TYPE: (
-                            df_subset[PropertyStructure.TARGET_TYPE].unique()
-                            if idx == "BASIC_DATA_TYPE"
-                            else [None]
-                        ),
-                        PropertyStructure.PROPERTY_TYPE: df_subset[
-                            PropertyStructure.PROPERTY_TYPE
-                        ].unique(),
-                        PropertyStructure.MULTI_VALUED: df_subset[
-                            PropertyStructure.MULTI_VALUED
-                        ].unique(),
-                    }
-                    for col_name, data in columns_to_check.items():
-                        # validate duplicate non fcc properties
-                        if len(data) != 1:
-                            raise NeatValueError(
-                                f"Found properties '{col_name}' with lacking or multiple values: {data}"
-                            )
-                    prop_entity_id = df_subset[EntityStructure.ID].unique()[
-                        0
-                    ]  # TODO: check if there is a better way to get the entity id
-                    prop_row = {}
-                    if columns_to_check:
-                        for key, value in columns_to_check.items():
-                            if key not in [
-                                PropertyStructure.FIRSTCLASSCITIZEN,
-                                PropertyStructure.UNIQUE_VALIDATION_ID,
-                            ]:
-                                prop_row[key] = value[0]
-                    # Always include ID and DESCRIPTION
-                    prop_row[PropertyStructure.ID] = prop.replace("-", "_")
-                    prop_row[PropertyStructure.DESCRIPTION] = df_subset[
-                        PropertyStructure.DESCRIPTION
-                    ].unique()[0]
-                    try:
-                        property_group_id = (
-                            self._assign_root_nodes_to_tag_and_equipment_classes(
-                                prop_entity_id
-                            )
-                            if prop_entity_id.startswith(("T", "E"))
-                            else self._assign_property_group(
-                                prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
-                            )
-                        )
-                    except Exception as e:
-                        logging.error(
-                            f"Error assigning root nodes to tag and equipment classes: {e}"
-                        )
-                        property_group_id = self._assign_property_group(
-                            prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
-                        )
-                    entity_property_row = self._create_property_row(
-                        prop_row, property_group=property_group_id
-                    )
-                    if property_group_id not in entities:
-                        entities[property_group_id] = {
-                            EntityStructure.ID: property_group_id,
-                            EntityStructure.NAME: property_group_id,
-                            EntityStructure.DMS_NAME: property_group_id,
-                            EntityStructure.DESCRIPTION: None,
-                            EntityStructure.INHERITS_FROM_ID: None,
-                            EntityStructure.INHERITS_FROM_NAME: None,
-                            EntityStructure.FULL_INHERITANCE: None,
-                            EntityStructure.PROPERTIES: [],
-                            EntityStructure.FIRSTCLASSCITIZEN: False,
-                            EntityStructure.IMPLEMENTS_CORE_MODEL: None,
-                            EntityStructure.VIEW_FILTER: None,
-                        }
-                        entities[property_group_id]["properties"].append(
-                            self._create_property_row(
-                                {
-                                    PropertyStructure.ID: "entityType",
-                                    PropertyStructure.NAME: "entityType",
-                                    PropertyStructure.DMS_NAME: "entityType",
-                                    PropertyStructure.DESCRIPTION: "entityType",
-                                    PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
-                                    PropertyStructure.TARGET_TYPE: "String",
-                                    PropertyStructure.IS_REQUIRED: True,
-                                },
-                                property_group="EntityTypeGroup",
-                            )
-                        )
-                    entities[property_group_id]["properties"].append(
-                        entity_property_row
-                    )
-                    properties.append(entity_property_row)
+            if property_group_id is None:
+                print(f"Property group ID is None for property {prop[PropertyStructure.ID]}")
+                continue
+            entity_property_row = self._create_property_row(
+            {
+                PropertyStructure.ID: prop[PropertyStructure.ID],
+                PropertyStructure.NAME: prop[PropertyStructure.NAME],
+                PropertyStructure.DMS_NAME: prop[PropertyStructure.DMS_NAME],
+                PropertyStructure.DESCRIPTION: prop[PropertyStructure.DESCRIPTION],
+                PropertyStructure.PROPERTY_TYPE: prop[PropertyStructure.PROPERTY_TYPE],
+                PropertyStructure.TARGET_TYPE: prop[PropertyStructure.TARGET_TYPE],
+                PropertyStructure.IS_REQUIRED: prop[PropertyStructure.IS_REQUIRED],
+            }, property_group=property_group_id
+                )
+            if property_group_id not in entities:
+                entity = self._df_entities.loc[
+                    self._df_entities[EntityStructure.ID]
+                    == prop[EntityStructure.ID]
+                ].iloc[0]
+                entities[property_group_id] = {
+                    EntityStructure.ID: property_group_id,
+                    EntityStructure.NAME: entity[EntityStructure.NAME],
+                    EntityStructure.DMS_NAME: entity[EntityStructure.DMS_NAME],
+                    EntityStructure.DESCRIPTION: entity[EntityStructure.DESCRIPTION],
+                    EntityStructure.INHERITS_FROM_ID: None,
+                    EntityStructure.INHERITS_FROM_NAME: None,
+                    EntityStructure.FULL_INHERITANCE: None,
+                    EntityStructure.PROPERTIES: [],
+                    EntityStructure.FIRSTCLASSCITIZEN: False,
+                    EntityStructure.IMPLEMENTS_CORE_MODEL: None,
+                    EntityStructure.VIEW_FILTER: None,
+                }
+                # Initialize the set for tracking property IDs in this group
+                property_ids_per_group[property_group_id] = set()
+                entity_type_property = self._create_property_row(
+                    {
+                        PropertyStructure.ID: "entityType",
+                        PropertyStructure.NAME: "entityType",
+                        PropertyStructure.DMS_NAME: "entityType",
+                        PropertyStructure.DESCRIPTION: "entityType",
+                        PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
+                        PropertyStructure.TARGET_TYPE: "String",
+                        PropertyStructure.IS_REQUIRED: True,
+                    },
+                    property_group="EntityTypeGroup",
+                )
+                entities[property_group_id]["properties"].append(entity_type_property)
+                # Track the entityType property ID
+                property_ids_per_group[property_group_id].add(entity_type_property[PropertyStructure.ID])
+            # Check if property with the same ID already exists in this property group
+            # Use the transformed ID from entity_property_row (dashes replaced with underscores)
+            property_id = entity_property_row[PropertyStructure.ID]
+            if property_id not in property_ids_per_group[property_group_id]:
+                entities[property_group_id]["properties"].append(
+                    entity_property_row
+                )
+                # Track the property ID to prevent duplicates
+                property_ids_per_group[property_group_id].add(property_id)
 
         entities["EntityTypeGroup"] = {
             EntityStructure.ID: "EntityTypeGroup",
