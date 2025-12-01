@@ -1147,17 +1147,27 @@ class RootContainersProcessor(BaseProcessor):
                     entity_to_children[parent].append(entity_id)
 
         def normalize_cfihos_id(entity_id: str) -> str:
-            """Remove T or E prefix from CFIHOS ID if present."""
-            if (
-                entity_id
-                and entity_id[0] in ("T", "E")
-                and entity_id.startswith(("TCFIHOS-", "ECFIHOS-"))
-            ):
-                return "CFIHOS-" + entity_id.split("-", 1)[1]
+            """Remove T or E prefix from entity ID if present.
+            
+            Examples:
+                TCFIHOS-30000397 -> CFIHOS-30000397
+                ECFIHOS-30000397 -> CFIHOS-30000397
+                TEPC-30000397 -> EPC-30000397
+                EEPC-30000397 -> EPC-30000397
+            """
+            if entity_id and entity_id[0] in ("T", "E"):
+                # Split by '-' to get code and number parts
+                parts = entity_id.split("-", 1)
+                if len(parts) == 2:
+                    code = parts[0]
+                    number = parts[1]
+                    # Remove the first character (T or E) from the code
+                    normalized_code = code[1:] if len(code) > 1 else code
+                    return f"{normalized_code}-{number}"
             return entity_id
 
         def find_ancestor_in_root_list(
-            entity_id: str, root_list_normalized: set
+            entity_id: str
         ) -> str:
             """Find the closest ancestor that is in the root node list.
 
@@ -1174,7 +1184,7 @@ class RootContainersProcessor(BaseProcessor):
 
                 # Normalize current and check if it's in root list
                 current_normalized = normalize_cfihos_id(current)
-                if current_normalized in root_list_normalized:
+                if current_normalized in node_list:
                     return current_normalized
 
                 parents = entity_to_parents.get(current, [])
@@ -1203,15 +1213,12 @@ class RootContainersProcessor(BaseProcessor):
 
             return None
 
-        # Normalize the node_list to a set for faster lookup
-        root_list_normalized = set(node_list)
-
         # Create a mapping from normalized CFIHOS IDs to their T/E versions for lookup
         # This helps us check if an entity (in T/E format) is in the root list
         root_list_actual_ids = set()
         for entity_id in entity_to_parents:
             normalized = normalize_cfihos_id(entity_id)
-            if normalized in root_list_normalized:
+            if normalized in node_list:
                 root_list_actual_ids.add(entity_id)
 
         # Process both tag and equipment roots together
@@ -1223,11 +1230,16 @@ class RootContainersProcessor(BaseProcessor):
                 all_first_children.extend(entity_to_children[root_node])
 
         # Get all entities that start with T or E (tag/equipment entities)
-        entities_to_process = [
-            entity_id
-            for entity_id in entity_to_parents
-            if entity_id.startswith(("TCFIHOS-", "ECFIHOS-"))
-        ]
+        # Get entities from the dataframe to ensure we process all entities, not just those in mappings
+        entities_to_process = []
+        for _, row in self._df_entities.iterrows():
+            entity_id = row[EntityStructure.ID]
+            # Skip None, NaN, or empty entity IDs
+            if pd.isna(entity_id) or not entity_id or not isinstance(entity_id, str):
+                continue
+            # Only process entities that start with TCFIHOS- or ECFIHOS-
+            if entity_id.startswith(("TCFIHOS-", "ECFIHOS-")):
+                entities_to_process.append(entity_id)
 
         # Process each entity
         for entity_id in entities_to_process:
@@ -1238,36 +1250,65 @@ class RootContainersProcessor(BaseProcessor):
             if entity_key in denormalization_map:
                 continue
 
-            # Check if this entity (or its normalized version) is in the root node list
+            # Priority 1: Check if this entity itself is in the root node list
+            # If so, it maps to itself (this handles first children in root_list, 
+            # and sub-children in root_list)
             if entity_id in root_list_actual_ids:
                 # Map to itself (normalized)
                 denormalization_map[entity_key] = normalize_cfihos_id(entity_id)
                 continue
 
-            # Skip first children themselves (they stay as they are, but we need to map them)
+            # Priority 2: Check if any of its ancestors is in root_node_list
+            # This ensures that if a first child or sub-child is in root_list,
+            # all its descendants map to it (not to a more distant ancestor)
+            ancestor_root_normalized = find_ancestor_in_root_list(entity_id)
+
+            if ancestor_root_normalized:
+                # Denormalize to the closest root node ancestor (normalized)
+                denormalization_map[entity_key] = ancestor_root_normalized
+                continue
+
+            # Priority 3: Check if entity is a first child (not in root_list)
+            # First children that are not in root_list map to themselves
             if entity_id in all_first_children:
                 # Map first children to themselves (normalized)
                 denormalization_map[entity_key] = normalize_cfihos_id(entity_id)
                 continue
 
-            # Check if any of its ancestors is in root_node_list
-            ancestor_root_normalized = find_ancestor_in_root_list(
-                entity_id, root_list_normalized
-            )
+            # Priority 4: Check if direct parent is a first child (more direct check)
+            # This handles the case where direct children of first children
+            # might not be found by find_first_child_ancestor
+            parents = entity_to_parents.get(entity_id, [])
+            direct_parent_is_first_child = None
+            for parent in parents:
+                if parent and parent in all_first_children:
+                    direct_parent_is_first_child = parent
+                    break
 
-            if ancestor_root_normalized:
-                # Denormalize to the root node from the list (normalized)
-                denormalization_map[entity_key] = ancestor_root_normalized
-            else:
-                # Find which first child this entity descends from
-                first_child = find_first_child_ancestor(entity_id, all_first_children)
-                if first_child:
-                    # Denormalize to the first child (normalized)
-                    denormalization_map[entity_key] = normalize_cfihos_id(first_child)
+            if direct_parent_is_first_child:
+                # Denormalize to the first child parent (normalized)
+                denormalization_map[entity_key] = normalize_cfihos_id(
+                    direct_parent_is_first_child
+                )
+                continue
+
+            # Priority 5: Find which first child this entity descends from (traverse up the tree)
+            # This handles deeper descendants of first children
+            # This should catch any remaining cases, including entities that might
+            # have been missed by the direct parent check
+            first_child = find_first_child_ancestor(entity_id, all_first_children)
+            if first_child:
+                # Denormalize to the first child (normalized)
+                denormalization_map[entity_key] = normalize_cfihos_id(first_child)
+                continue
+
+            # If we get here, the entity doesn't descend from any first child
+            # This shouldn't happen for entities that start with TCFIHOS- or ECFIHOS-
+            # but we'll leave it unmapped rather than raising an error
 
         self.tag_and_equipment_classes_to_root_nodes = denormalization_map
 
-    def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str) -> str:
+    def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str, property_id: str) -> str:
         """Returns the root node entity ID assigned to the given tag or equipment class entity ID.
 
         Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
@@ -1290,4 +1331,6 @@ class RootContainersProcessor(BaseProcessor):
         node_group_id = self.tag_and_equipment_classes_to_root_nodes.get(
             normalized_id, None
         )
+        if property_id.lower().endswith("_uom"):
+            return node_group_id.replace("-", "_") + "_UOM" if node_group_id else None
         return node_group_id.replace("-", "_") if node_group_id else None
