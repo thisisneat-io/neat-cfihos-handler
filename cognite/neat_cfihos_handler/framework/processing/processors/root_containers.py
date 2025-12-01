@@ -1151,7 +1151,7 @@ class RootContainersProcessor(BaseProcessor):
 
         def normalize_cfihos_id(entity_id: str) -> str:
             """Remove T or E prefix from entity ID if present.
-            
+
             Examples:
                 TCFIHOS-30000397 -> CFIHOS-30000397
                 ECFIHOS-30000397 -> CFIHOS-30000397
@@ -1169,9 +1169,7 @@ class RootContainersProcessor(BaseProcessor):
                     return f"{normalized_code}-{number}"
             return entity_id
 
-        def find_ancestor_in_root_list(
-            entity_id: str
-        ) -> str:
+        def find_ancestor_in_root_list(entity_id: str) -> str:
             """Find the closest ancestor that is in the root node list.
 
             Returns the normalized CFIHOS ID (without T/E prefix).
@@ -1254,7 +1252,7 @@ class RootContainersProcessor(BaseProcessor):
                 continue
 
             # Priority 1: Check if this entity itself is in the root node list
-            # If so, it maps to itself (this handles first children in root_list, 
+            # If so, it maps to itself (this handles first children in root_list,
             # and sub-children in root_list)
             if entity_id in root_list_actual_ids:
                 # Map to itself (normalized)
@@ -1311,7 +1309,9 @@ class RootContainersProcessor(BaseProcessor):
 
         self.tag_and_equipment_classes_to_root_nodes = denormalization_map
 
-    def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str, property_id: str) -> str:
+    def _assign_root_nodes_to_tag_and_equipment_classes(
+        self, enitity_id: str, property_id: str
+    ) -> str:
         """Returns the root node entity ID assigned to the given tag or equipment class entity ID.
 
         Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
