@@ -913,9 +913,11 @@ class CfihosModelLoader(BaseModelInterpreter):
             df[tag_or_equipment.raw_column_mapping[EntityStructure.ID]],
         )
 
-        df[tag_or_equipment.raw_column_mapping["parent_join_key"]] = df[
-            tag_or_equipment.raw_column_mapping["parent_name_key"]
-        ].str.lower().map(self._map_entity_name_to_entity_id)
+        df[tag_or_equipment.raw_column_mapping["parent_join_key"]] = (
+            df[tag_or_equipment.raw_column_mapping["parent_name_key"]]
+            .str.lower()
+            .map(self._map_entity_name_to_entity_id)
+        )
 
         # Convert to global unique CFIHOS ID
         df[tag_or_equipment.raw_column_mapping["parent_join_key"]] = np.where(
