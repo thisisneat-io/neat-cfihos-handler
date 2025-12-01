@@ -63,6 +63,7 @@ class RootContainersProcessor(BaseProcessor):
     """
 
     model_type: str = field(default=SparseModelType.CONTAINERS)
+    add_scalar_properties_for_direct_relations: bool = field(init=True, default=False)
     model_processors: list[CfihosModelLoader] = field(default_factory=list, init=False)
     tag_and_equipment_classes_to_root_nodes: dict[str, str] = field(
         default_factory=dict, init=False
@@ -221,9 +222,9 @@ class RootContainersProcessor(BaseProcessor):
         # Step 0: create the denormalization mapping for the root containers
         self._create_denormalization_mapping()
         # Step 1: build the full inheritance of entities
-        self._build_entities_full_inheritance()
         # Step 2: extend the direct relations properties with sclarified properties
-        self._extend_additional_properties_for_direct_relations()
+        if self.add_scalar_properties_for_direct_relations:
+            self._extend_additional_properties_for_direct_relations()
         # Step 3: extend the properties that have relevant UOM with string properties suffexed with _UOM
         self._extend_UOM_properties()
 
@@ -1022,14 +1023,13 @@ class RootContainersProcessor(BaseProcessor):
                 f"{id_number - id_number % container_property_limit + 1}_"
                 f"{id_number - id_number % container_property_limit + container_property_limit + 1}"
             )
-
-        property_extention_suffix_list = ["_rel", "_uom"]
         property_group_id = (
             f"{property_group_id}_ext"
-            if any(
-                propertyId.lower().endswith(ext)
-                for ext in property_extention_suffix_list
+            if (
+                self.add_scalar_properties_for_direct_relations
+                and propertyId.lower().endswith("_rel")
             )
+            or (propertyId.lower().endswith("_uom"))
             else property_group_id
         )
         return f"{property_group_prefix}_{property_group_id}"
