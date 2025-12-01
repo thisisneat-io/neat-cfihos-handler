@@ -551,11 +551,10 @@ class RootContainersProcessor(BaseProcessor):
             # )
         ]
         # Check that all target types are present
-        for _, prop in df_properties.iterrows():                    
-
+        for _, prop in df_properties.iterrows():
             property_group_id = (
                 self._assign_root_nodes_to_tag_and_equipment_classes(
-                    prop[EntityStructure.ID],prop[PropertyStructure.ID]
+                    prop[EntityStructure.ID], prop[PropertyStructure.ID]
                 )
                 if prop[EntityStructure.ID].startswith(("T", "E"))
                 else self._assign_property_group(
@@ -563,23 +562,27 @@ class RootContainersProcessor(BaseProcessor):
                 )
             )
             if property_group_id is None:
-                print(f"Property group ID is None for property {prop[PropertyStructure.ID]}")
+                print(
+                    f"Property group ID is None for property {prop[PropertyStructure.ID]}"
+                )
                 continue
             entity_property_row = self._create_property_row(
-            {
-                PropertyStructure.ID: prop[PropertyStructure.ID],
-                PropertyStructure.NAME: prop[PropertyStructure.NAME],
-                PropertyStructure.DMS_NAME: prop[PropertyStructure.DMS_NAME],
-                PropertyStructure.DESCRIPTION: prop[PropertyStructure.DESCRIPTION],
-                PropertyStructure.PROPERTY_TYPE: prop[PropertyStructure.PROPERTY_TYPE],
-                PropertyStructure.TARGET_TYPE: prop[PropertyStructure.TARGET_TYPE],
-                PropertyStructure.IS_REQUIRED: prop[PropertyStructure.IS_REQUIRED],
-            }, property_group=property_group_id
-                )
+                {
+                    PropertyStructure.ID: prop[PropertyStructure.ID],
+                    PropertyStructure.NAME: prop[PropertyStructure.NAME],
+                    PropertyStructure.DMS_NAME: prop[PropertyStructure.DMS_NAME],
+                    PropertyStructure.DESCRIPTION: prop[PropertyStructure.DESCRIPTION],
+                    PropertyStructure.PROPERTY_TYPE: prop[
+                        PropertyStructure.PROPERTY_TYPE
+                    ],
+                    PropertyStructure.TARGET_TYPE: prop[PropertyStructure.TARGET_TYPE],
+                    PropertyStructure.IS_REQUIRED: prop[PropertyStructure.IS_REQUIRED],
+                },
+                property_group=property_group_id,
+            )
             if property_group_id not in entities:
                 entity = self._df_entities.loc[
-                    self._df_entities[EntityStructure.ID]
-                    == prop[EntityStructure.ID]
+                    self._df_entities[EntityStructure.ID] == prop[EntityStructure.ID]
                 ].iloc[0]
                 entities[property_group_id] = {
                     EntityStructure.ID: property_group_id,
@@ -610,14 +613,14 @@ class RootContainersProcessor(BaseProcessor):
                 )
                 entities[property_group_id]["properties"].append(entity_type_property)
                 # Track the entityType property ID
-                property_ids_per_group[property_group_id].add(entity_type_property[PropertyStructure.ID])
+                property_ids_per_group[property_group_id].add(
+                    entity_type_property[PropertyStructure.ID]
+                )
             # Check if property with the same ID already exists in this property group
             # Use the transformed ID from entity_property_row (dashes replaced with underscores)
             property_id = entity_property_row[PropertyStructure.ID]
             if property_id not in property_ids_per_group[property_group_id]:
-                entities[property_group_id]["properties"].append(
-                    entity_property_row
-                )
+                entities[property_group_id]["properties"].append(entity_property_row)
                 # Track the property ID to prevent duplicates
                 property_ids_per_group[property_group_id].add(property_id)
 
