@@ -552,16 +552,21 @@ class RootContainersProcessor(BaseProcessor):
         ]
         # Check that all target types are present
         for _, prop in df_properties.iterrows():
-            property_group_id: str  = ""
+            property_group_id: str = ""
             entity_item = None
             if prop[EntityStructure.ID].startswith(("T", "E")):
-                property_group_id = self._assign_root_nodes_to_tag_and_equipment_classes(
-                    prop[EntityStructure.ID], prop[PropertyStructure.ID]
-                )             
+                property_group_id = (
+                    self._assign_root_nodes_to_tag_and_equipment_classes(
+                        prop[EntityStructure.ID], prop[PropertyStructure.ID]
+                    )
+                )
                 entity_filtered = self._df_entities.loc[
-                    self._df_entities[EntityStructure.ID] == prop[EntityStructure.ID][0] + property_group_id.replace("_", "-")
+                    self._df_entities[EntityStructure.ID]
+                    == prop[EntityStructure.ID][0] + property_group_id.replace("_", "-")
                 ]
-                entity_item = entity_filtered.iloc[0] if not entity_filtered.empty else None
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
             else:
                 property_group_id = self._assign_property_group(
                     prop[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
@@ -569,7 +574,9 @@ class RootContainersProcessor(BaseProcessor):
                 entity_filtered = self._df_entities.loc[
                     self._df_entities[EntityStructure.ID] == property_group_id
                 ]
-                entity_item = entity_filtered.iloc[0] if not entity_filtered.empty else None
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
 
             entity_property_row = self._create_property_row(
                 {
@@ -585,12 +592,20 @@ class RootContainersProcessor(BaseProcessor):
                 },
                 property_group=property_group_id,
             )
-            if property_group_id not in entities:    
+            if property_group_id not in entities:
                 entities[property_group_id] = {
                     EntityStructure.ID: property_group_id,
-                    EntityStructure.NAME: entity_item[EntityStructure.NAME] if entity_item is not None else None,
-                    EntityStructure.DMS_NAME: entity_item[EntityStructure.DMS_NAME] if entity_item is not None else None,
-                    EntityStructure.DESCRIPTION: entity_item[EntityStructure.DESCRIPTION] if entity_item is not None else None,
+                    EntityStructure.NAME: entity_item[EntityStructure.NAME]
+                    if entity_item is not None
+                    else None,
+                    EntityStructure.DMS_NAME: entity_item[EntityStructure.DMS_NAME]
+                    if entity_item is not None
+                    else None,
+                    EntityStructure.DESCRIPTION: entity_item[
+                        EntityStructure.DESCRIPTION
+                    ]
+                    if entity_item is not None
+                    else None,
                     EntityStructure.INHERITS_FROM_ID: None,
                     EntityStructure.INHERITS_FROM_NAME: None,
                     EntityStructure.FULL_INHERITANCE: None,
@@ -1121,6 +1136,10 @@ class RootContainersProcessor(BaseProcessor):
             "CFIHOS-30000594",
             "CFIHOS-30000524",
             "CFIHOS-30000181",
+            "CFIHOS-30000660",
+            "CFIHOS-30000699",
+            "CFIHOS-30000230",
+            "CFIHOS-30000685",
         ]
 
         # Root nodes for each type
