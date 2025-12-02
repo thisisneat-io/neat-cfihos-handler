@@ -173,9 +173,8 @@ def build_neat_model_from_entities(
                         except KeyError:
                             value_type_property = None
                             logging.warning(
-                                f"Target type {prop_data[PropertyStructure.TARGET_TYPE]} for property {prop_data[PropertyStructure.ID]} not found, skipping."
+                                f"Target type {prop_data[PropertyStructure.TARGET_TYPE]} for property {prop_data[PropertyStructure.ID]} not found."
                             )
-                            continue
                         container_reference = (
                             containers_space
                             + ":"
