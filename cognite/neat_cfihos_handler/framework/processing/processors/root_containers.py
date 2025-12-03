@@ -221,7 +221,6 @@ class RootContainersProcessor(BaseProcessor):
 
         # Step 0: create the denormalization mapping for the root containers
         self._create_denormalization_mapping()
-        # Step 1: build the full inheritance of entities
         # Step 2: extend the direct relations properties with sclarified properties
         if self.add_scalar_properties_for_direct_relations:
             self._extend_additional_properties_for_direct_relations()
@@ -236,6 +235,8 @@ class RootContainersProcessor(BaseProcessor):
             # Step 5: Append the first-class citizen entities' properties to the model properties
             self._extend_container_model_first_class_citizens_entities()
         elif self.model_type == SparseModelType.VIEWS:
+            # Step 1: build the full inheritance of entities
+            self._build_entities_full_inheritance()            
             # Step 4: create the model entities and store them in the global model_entities dict
             self._create_views_model_entities()
         else:
@@ -928,11 +929,19 @@ class RootContainersProcessor(BaseProcessor):
                     # TODO: add NEAT warning
                     continue
 
-                property_group = (
-                    prop_row[EntityStructure.ID].replace("-", "_")
-                    if row[EntityStructure.FIRSTCLASSCITIZEN]
-                    else self._assign_property_group(prop_row[PropertyStructure.ID])
-                )
+                property_group: str = ""       
+                if prop_row[EntityStructure.ID].startswith(("T", "E")):
+                    property_group = (
+                                    self._assign_root_nodes_to_tag_and_equipment_classes(
+                                        prop_row[EntityStructure.ID], prop_row[PropertyStructure.ID]
+                                    )
+                                )                
+                else:
+                    property_group = (
+                        prop_row[EntityStructure.ID].replace("-", "_")
+                        if row[EntityStructure.FIRSTCLASSCITIZEN]
+                        else self._assign_property_group(prop_row[PropertyStructure.ID])
+                    )
 
                 target_type = self._map_entity_id_to_dms_name.get(
                     prop_row[PropertyStructure.TARGET_TYPE],
