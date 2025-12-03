@@ -932,10 +932,10 @@ class RootContainersProcessor(BaseProcessor):
                 property_group: str = ""
                 if prop_row[EntityStructure.ID].startswith(("T", "E")):
                     property_group = (
-                                    self._assign_root_nodes_to_tag_and_equipment_classes(
-                                        prop_row[EntityStructure.ID], prop_row[PropertyStructure.ID]
-                                    )
-                                )
+                        self._assign_root_nodes_to_tag_and_equipment_classes(
+                            prop_row[EntityStructure.ID], prop_row[PropertyStructure.ID]
+                        )
+                    )
                 else:
                     property_group = (
                         prop_row[EntityStructure.ID].replace("-", "_")
