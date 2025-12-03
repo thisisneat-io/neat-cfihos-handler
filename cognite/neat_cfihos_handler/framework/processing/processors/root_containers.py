@@ -236,7 +236,7 @@ class RootContainersProcessor(BaseProcessor):
             self._extend_container_model_first_class_citizens_entities()
         elif self.model_type == SparseModelType.VIEWS:
             # Step 1: build the full inheritance of entities
-            self._build_entities_full_inheritance()            
+            self._build_entities_full_inheritance()
             # Step 4: create the model entities and store them in the global model_entities dict
             self._create_views_model_entities()
         else:
@@ -929,13 +929,13 @@ class RootContainersProcessor(BaseProcessor):
                     # TODO: add NEAT warning
                     continue
 
-                property_group: str = ""       
+                property_group: str = ""
                 if prop_row[EntityStructure.ID].startswith(("T", "E")):
                     property_group = (
                                     self._assign_root_nodes_to_tag_and_equipment_classes(
                                         prop_row[EntityStructure.ID], prop_row[PropertyStructure.ID]
                                     )
-                                )                
+                                )
                 else:
                     property_group = (
                         prop_row[EntityStructure.ID].replace("-", "_")
