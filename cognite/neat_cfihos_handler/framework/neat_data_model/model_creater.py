@@ -81,18 +81,19 @@ def build_neat_model_from_entities(
             )
     for _, entity_data in entities.items():
         parents_ext_ids: list[str] = []
-        inherits_from = entity_data.get(EntityStructure.INHERITS_FROM_ID)
-        if inherits_from:
+        full_inheritance = entity_data.get(EntityStructure.FULL_INHERITANCE)
+        if full_inheritance:
             parents_ext_ids.extend(
                 [
                     entities[parent_id][map_entity_identifier[dms_identifire]]
                     if not force_code_as_view_id
                     else entities[parent_id][map_entity_identifier["cfihos_code"]]
-                    for parent_id in inherits_from
+                    for parent_id in full_inheritance
+                    if parent_id in entities
                 ]
-                if inherits_from
+                if full_inheritance
                 else []
-            )
+            )            
 
         # add views for those entities that implements core models if include_cdm is True
         if include_cdm:
