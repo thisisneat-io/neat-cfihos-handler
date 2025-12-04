@@ -802,7 +802,14 @@ class SparsePropertiesProcessor(BaseProcessor):
                 EntityStructure.INHERITS_FROM_NAME: row[
                     EntityStructure.INHERITS_FROM_NAME
                 ],
-                EntityStructure.FULL_INHERITANCE: row[EntityStructure.FULL_INHERITANCE],
+                EntityStructure.FULL_INHERITANCE:(
+                    [
+                        self._map_entity_id_to_dms_id[parent_id]
+                        for parent_id in row[EntityStructure.FULL_INHERITANCE]
+                    ]
+                    if row[EntityStructure.FULL_INHERITANCE] is not None
+                    else None
+                ),
                 "cfihosType": row["type"],
                 "cfihosId": row[EntityStructure.ID],
                 EntityStructure.PROPERTIES: [],
@@ -1002,7 +1009,6 @@ class SparsePropertiesProcessor(BaseProcessor):
         self._df_entities[EntityStructure.FULL_INHERITANCE] = self._df_entities[
             EntityStructure.ID
         ].apply(get_ancestors)
-        print("x")
 
     def _validate_relation_is_eligible(self, enitity_property: dict) -> bool:
         if enitity_property[PropertyStructure.PROPERTY_TYPE] == Relations.DIRECT:
