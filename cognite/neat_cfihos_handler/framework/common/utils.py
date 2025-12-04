@@ -239,7 +239,11 @@ def dfs(visited: set, entity_id: str, full_model: dict):
     """
     if entity_id not in visited:
         visited.add(entity_id)
-        entity_data = full_model[entity_id]
+        try:
+            entity_data = full_model[entity_id]
+        except KeyError:
+            print(f"Entity {entity_id} not found in full model")
+            raise KeyError(f"Entity {entity_id} not found in full model")
         extends = entity_data.get(EntityStructure.INHERITS_FROM_ID, [])
 
         if entity_data[EntityStructure.PROPERTIES]:

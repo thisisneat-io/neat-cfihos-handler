@@ -767,7 +767,19 @@ class SparsePropertiesProcessor(BaseProcessor):
         # Process each entity row
         for _, row in self._df_entities.iterrows():
             unique_entity_id = self._map_entity_id_to_dms_id[row[EntityStructure.ID]]
+            df_current_entity_properties = self._df_entity_properties[
+                (
+                    (
+                        self._df_entity_properties[EntityStructure.ID]
+                        == row[EntityStructure.ID]
+                    )
+                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
+                )
+            ]
 
+            if df_current_entity_properties.empty:
+                # no available properties assigned to this entity. Skip it.
+                continue
             # Check for duplicates
             if unique_entity_id in entities:
                 raise NeatValueError(
@@ -958,6 +970,11 @@ class SparsePropertiesProcessor(BaseProcessor):
 
     def _build_entities_full_inheritance(self):
         """Update a 'full_inheritance' column to df_entities containing all ancestor entityIds."""
+        # Get set of entity IDs that have properties
+        entities_with_properties = set(
+            self._df_entity_properties[EntityStructure.ID].unique()
+        )
+        
         entity_to_parents = self._df_entities.set_index(EntityStructure.ID)[
             EntityStructure.INHERITS_FROM_ID
         ].to_dict()
@@ -974,14 +991,18 @@ class SparsePropertiesProcessor(BaseProcessor):
                 ancestors = []
                 for parent in parents:
                     if parent is not None:
-                        ancestors.append(parent)
+                        # Only include ancestors that have properties
+                        if parent in entities_with_properties:
+                            ancestors.append(parent)
                         ancestors.extend(get_ancestors(parent))
-                memo[eid] = ancestors
+                # Filter to only include ancestors with properties
+                memo[eid] = [anc for anc in ancestors if anc in entities_with_properties]
             return memo[eid]
 
         self._df_entities[EntityStructure.FULL_INHERITANCE] = self._df_entities[
             EntityStructure.ID
         ].apply(get_ancestors)
+        print("x")
 
     def _validate_relation_is_eligible(self, enitity_property: dict) -> bool:
         if enitity_property[PropertyStructure.PROPERTY_TYPE] == Relations.DIRECT:
