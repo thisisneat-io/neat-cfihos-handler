@@ -239,12 +239,9 @@ def dfs(visited: set, entity_id: str, full_model: dict):
     """
     if entity_id not in visited:
         visited.add(entity_id)
-        try:
-            entity_data = full_model[entity_id]
-        except KeyError:
-            print(f"Entity {entity_id} not found in full model")
-            raise KeyError(f"Entity {entity_id} not found in full model")
-        extends = entity_data.get(EntityStructure.INHERITS_FROM_ID, [])
+        entity_data = full_model[entity_id]
+        inherits_from_id = entity_data.get(EntityStructure.INHERITS_FROM_ID, []) or []
+        extends = [item for item in inherits_from_id if item in full_model]
 
         if entity_data[EntityStructure.PROPERTIES]:
             properties_to_extend = set()
@@ -257,7 +254,7 @@ def dfs(visited: set, entity_id: str, full_model: dict):
                         properties_to_extend.add(prop_target_type)
             for prop_to_extend in properties_to_extend:
                 dfs(visited, prop_to_extend, full_model)
-        if extends is None:
+        if extends is None or len(extends) == 0:
             return visited
         for parent in extends:
             parent_entity_id = parent
