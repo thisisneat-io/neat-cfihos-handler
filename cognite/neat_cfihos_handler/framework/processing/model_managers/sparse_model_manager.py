@@ -179,6 +179,7 @@ class SparseCfihosManager(BaseCfihosManager):
             entities=scoped_model,
             dms_identifire=self.dms_identifire,
             include_containers=False,
+            include_cdm=True,
         )
 
         logging.info(f"Building {len(scoped_model)} scoped entity views")
