@@ -135,7 +135,7 @@ class SparseCfihosManager(BaseCfihosManager):
             include_cdm=True,
             containers_indexes=self._containers_indexes,
             containers_space=self._container_space,
-            force_code_as_view_id=True,
+            force_code_as_view_id=False,
         )
 
         logging.info("Generating NEAT Data Model ...")

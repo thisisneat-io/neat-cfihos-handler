@@ -118,6 +118,12 @@ class NeatPropertyStructure:
     INDEX: str = "Index"
     CONSTRAINT: str = "Constraint"
 
+class CfihosDmsIdentifierMapping:
+    """Defines field names for CFIHOS DMS identifier mapping structure representation.
+    """
+    CFIHOS_NAME: str = "cfihos_name"
+    CFIHOS_CODE: str = "cfihos_code"
+
 
 class NeatContainerStructure:
     """Defines field names for NEAT container structure representation.
