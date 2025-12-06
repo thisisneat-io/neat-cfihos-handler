@@ -582,8 +582,6 @@ class SparsePropertiesProcessor(BaseProcessor):
             EntityStructure.INHERITS_FROM_ID: None,
             EntityStructure.INHERITS_FROM_NAME: None,
             EntityStructure.FULL_INHERITANCE: None,
-            "cfihosType": "EntityTypeGroup",
-            "cfihosId": "EntityTypeGroup",
             EntityStructure.PROPERTIES: [
                 self._create_property_row(
                     {
@@ -810,8 +808,6 @@ class SparsePropertiesProcessor(BaseProcessor):
                     if row[EntityStructure.FULL_INHERITANCE] is not None
                     else None
                 ),
-                "cfihosType": row["type"],
-                "cfihosId": row[EntityStructure.ID],
                 EntityStructure.PROPERTIES: [],
                 EntityStructure.FIRSTCLASSCITIZEN: bool(
                     row[EntityStructure.FIRSTCLASSCITIZEN]
