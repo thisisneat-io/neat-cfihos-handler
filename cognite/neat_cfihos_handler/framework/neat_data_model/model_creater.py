@@ -190,14 +190,14 @@ def build_neat_model_from_entities(
                             containers_space
                             + ":"
                             + (
-                                entities[prop_data[PropertyStructure.PROPERTY_GROUP]][
-                                    map_entity_identifier[dms_identifire]
-                                    if not force_code_as_view_id
-                                    else map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
-                                ]
-                                if prop_data[PropertyStructure.PROPERTY_GROUP] is not None
+                                prop_data[
+                                    map_property_group_identifier[
+                                        dms_identifire if not force_code_as_view_id
+                                    else [CfihosDmsIdentifierMapping.CFIHOS_CODE]]]
+                                     if prop_data[PropertyStructure.PROPERTY_GROUP] is not None
                                 else None
                             )
+
                         )
                         container_property = prop_data[map_property_identifier[dms_identifire]]
                         connection_property = "direct"
@@ -253,15 +253,13 @@ def build_neat_model_from_entities(
                         value_type=prop_data[PropertyStructure.TARGET_TYPE],
                         min_count=0,
                         max_count=1,
+                        index=",".join(lst_property_container_indexes)
+                        if len(lst_property_container_indexes) > 0
+                        and include_containers
+                        else None,
                         container=containers_space
                         + ":"
-                        + (
-                                entities[prop_data[PropertyStructure.PROPERTY_GROUP]][
-                                    map_entity_identifier[dms_identifire]
-                                    if not force_code_as_view_id
-                                    else map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
-                                ]
-                            ), # TODO: This will fail when building views model as the PropertyGroup will not exist in "entities" dictionary. Fix: add propertyGroupDmsName to the property attribute so it can replace the use of entities dictionary.
+                        + prop_data[map_property_group_identifier[dms_identifire]] if not force_code_as_view_id else prop_data[map_property_group_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]],
                         container_property=prop_data[map_property_identifier[dms_identifire]],
                     )
                 )
