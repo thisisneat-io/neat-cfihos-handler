@@ -44,6 +44,10 @@ map_target_edge_identifier = {
     CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.EDGE_TARGET_DMS_NAME,
     CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.EDGE_TARGET,
 }
+map_property_group_identifier = {
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.PROPERTY_GROUP_DMS_NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.PROPERTY_GROUP,
+}
 
 
 def build_neat_model_from_entities(

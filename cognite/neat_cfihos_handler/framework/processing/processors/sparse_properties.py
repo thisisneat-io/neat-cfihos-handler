@@ -234,6 +234,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         self,
         property_item: dict,
         property_group=None,
+        property_group_dms_name=None,
         is_uom_variant=False,
         is_relationship_variant=False,
         is_custom_property=False,
@@ -248,6 +249,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         Args:
             property_item (dict): The property data (dictionary).
             property_group (str, optional): The property group for the property, if applicable.
+            property_group_dms_name (str, optional): The property group DMS name for the property, if applicable.
             is_uom_variant (bool, optional): Flag to indicate if this is a UOM variant.
             is_relationship_variant (bool, optional): Flag to indicate if this is a relationship variant.
             is_custom_property (bool, optional): Flag to indicate if this is a custom property.
@@ -290,6 +292,7 @@ class SparsePropertiesProcessor(BaseProcessor):
             ),
             PropertyStructure.INHERITED: False,
             PropertyStructure.PROPERTY_GROUP: property_group,
+            PropertyStructure.PROPERTY_GROUP_DMS_NAME: property_group_dms_name,
             PropertyStructure.CUSTOM_PROPERTY: is_custom_property,
             PropertyStructure.FIRSTCLASSCITIZEN: is_first_class_citzen,  # label the first class citizen
             EntityStructure.ID: property_item.get(EntityStructure.ID, None),
@@ -539,7 +542,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                         prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
                     )
                     entity_property_row = self._create_property_row(
-                        prop_row, property_group=property_group_id
+                        prop_row, property_group=property_group_id, property_group_dms_name=property_group_id
                     )
                     if property_group_id not in entities:
                         entities[property_group_id] = {
@@ -567,6 +570,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                                     PropertyStructure.IS_REQUIRED: True,
                                 },
                                 property_group="EntityTypeGroup",
+                                property_group_dms_name="EntityTypeGroup",
                             )
                         )
                     entities[property_group_id]["properties"].append(
@@ -592,6 +596,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                         PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     },
                     property_group="EntityTypeGroup",
+                    property_group_dms_name="EntityTypeGroup",
                     is_first_class_citzen=True,
                     is_edge_property=False,
                     is_reverse_relation=False,
@@ -723,6 +728,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                     entity_property_row = self._create_property_row(
                         prop,
                         property_group=prop[EntityStructure.ID].replace("-", "_"),
+                        property_group_dms_name=entities[property_group_id][EntityStructure.DMS_NAME],
                         is_first_class_citzen=True,
                         is_edge_property=prop[PropertyStructure.PROPERTY_TYPE]
                         == Relations.EDGE,
@@ -842,7 +848,9 @@ class SparsePropertiesProcessor(BaseProcessor):
             ].iterrows():
                 if prop_row[PropertyStructure.ID] in inherited_props:
                     continue  # skip inherited property
-
+                property_entity = self._df_entities[
+                    (self._df_entities[EntityStructure.ID] == prop_row[EntityStructure.ID])
+                ].iloc[0]
                 # Check for duplicates
                 if (
                     not prop_row[PropertyStructure.FIRSTCLASSCITIZEN]
@@ -881,7 +889,11 @@ class SparsePropertiesProcessor(BaseProcessor):
                     if row[EntityStructure.FIRSTCLASSCITIZEN]
                     else self._assign_property_group(prop_row[PropertyStructure.ID])
                 )
-
+                property_group_dms_name = (
+                    property_entity[EntityStructure.DMS_NAME]
+                    if row[EntityStructure.FIRSTCLASSCITIZEN]
+                    else self._assign_property_group(prop_row[PropertyStructure.ID])
+                )
                 target_type = self._map_entity_id_to_dms_name.get(
                     prop_row[PropertyStructure.TARGET_TYPE],
                     prop_row[PropertyStructure.TARGET_TYPE],
@@ -890,6 +902,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                 property_row = self._create_property_row(
                     prop_row,
                     property_group=property_group,
+                    property_group_dms_name=property_group_dms_name,
                     is_first_class_citzen=row[EntityStructure.FIRSTCLASSCITIZEN],
                     is_edge_property=prop_row[PropertyStructure.PROPERTY_TYPE]
                     == Relations.EDGE,
@@ -917,6 +930,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                             PropertyStructure.IS_REQUIRED: True,
                         },
                         property_group="EntityTypeGroup",
+                        property_group_dms_name="EntityTypeGroup",
                     )
                 )
 

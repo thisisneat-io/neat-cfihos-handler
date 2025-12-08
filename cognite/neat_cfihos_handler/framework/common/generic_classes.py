@@ -53,6 +53,7 @@ class PropertyStructure:
     ENUMERATION_TABLE: str = "enumerationTableName"
     UOM: str = "unitOfMeasure"
     PROPERTY_GROUP: str = "propertyGroup"
+    PROPERTY_GROUP_DMS_NAME: str = "propertyGroupDmsName"
     INHERITED: str = "inherited"
     INHERITED_FROM: str = "inheritedFrom"
     FIRSTCLASSCITIZEN = "firstClassCitizen"
