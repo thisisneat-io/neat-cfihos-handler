@@ -78,6 +78,10 @@ def build_neat_model_from_entities(
     containers = []
     properties = []
 
+    # replace "-" with "_" in the configured containers_indexes keys for safe index parsing
+    if containers_indexes is not None:
+        containers_indexes = {key.replace("-", "_"): value for key, value in containers_indexes.items()}
+
     if include_cdm:
         for cdm_view in COGNITE_CONCEPTS:
             views.append(
@@ -121,13 +125,16 @@ def build_neat_model_from_entities(
             index_order = 0
             if (
                 containers_indexes is not None
-                and entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]]
-                in containers_indexes.keys()
+                and (
+                entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]] in containers_indexes.keys()
+                or entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_NAME]] in containers_indexes.keys()
+            )
+                
             ):
                 for container_index in containers_indexes[
                     entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]]
                 ]:
-                    if prop_data[PropertyStructure.ID] in container_index["properties"]:
+                    if prop_data[PropertyStructure.ID] in container_index["properties"] or prop_data[PropertyStructure.DMS_NAME] in container_index["properties"]:
                         lst_property_container_indexes.append(
                             f'{container_index["index_type"]}:{container_index["index_id"]}(cursorable={container_index["cursorable"]}, order={index_order})'
                         )
