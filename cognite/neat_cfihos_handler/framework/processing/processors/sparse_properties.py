@@ -952,12 +952,12 @@ class SparsePropertiesProcessor(BaseProcessor):
         if id_number % container_property_limit == 0:
             property_group_id = (
                 f"{id_number - (id_number - 1) % container_property_limit}_"
-                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit}"
+                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit - 1}"
             )
         else:
             property_group_id = (
                 f"{id_number - id_number % container_property_limit + 1}_"
-                f"{id_number - id_number % container_property_limit + container_property_limit + 1}"
+                f"{id_number - id_number % container_property_limit + container_property_limit}"
             )
 
         property_extention_suffix_list = ["_rel", "_uom"]
