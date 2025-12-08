@@ -942,7 +942,7 @@ class SparsePropertiesProcessor(BaseProcessor):
     ) -> str:
         """Group non-FCC properties into groups of 100.
 
-        Example: CFIHOS_1_10000001_10000101, CFIHOS_4_40000001_40000101, etc.
+        Example: CFIHOS_1_10000001_10000100, CFIHOS_4_40000001_40000100, etc.
         """
         propertyId = propertyId.replace("-", "_")
         id_number = int(self._get_property_id_number(propertyId))
