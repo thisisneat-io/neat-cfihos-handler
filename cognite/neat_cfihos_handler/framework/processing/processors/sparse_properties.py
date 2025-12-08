@@ -559,9 +559,9 @@ class SparsePropertiesProcessor(BaseProcessor):
                             self._create_property_row(
                                 {
                                     PropertyStructure.ID: "entityType",
-                                    PropertyStructure.NAME: "entityType",
+                                    PropertyStructure.NAME: "Entity Type Property",
                                     PropertyStructure.DMS_NAME: "entityType",
-                                    PropertyStructure.DESCRIPTION: "entityType",
+                                    PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                                     PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                                     PropertyStructure.TARGET_TYPE: "String",
                                     PropertyStructure.IS_REQUIRED: True,
@@ -576,9 +576,9 @@ class SparsePropertiesProcessor(BaseProcessor):
 
         entities["EntityTypeGroup"] = {
             EntityStructure.ID: "EntityTypeGroup",
-            EntityStructure.NAME: "EntityTypeGroup",
+            EntityStructure.NAME: "Entity type group instances container",
             EntityStructure.DMS_NAME: "EntityTypeGroup",
-            EntityStructure.DESCRIPTION: "Container that holds CFIHOS IDs to be used in filtering instances in wide containers",
+            EntityStructure.DESCRIPTION: "Container that holds CFIHOS IDs to be used in filtering instances in containers",
             EntityStructure.INHERITS_FROM_ID: None,
             EntityStructure.INHERITS_FROM_NAME: None,
             EntityStructure.FULL_INHERITANCE: None,
@@ -586,9 +586,9 @@ class SparsePropertiesProcessor(BaseProcessor):
                 self._create_property_row(
                     {
                         PropertyStructure.ID: "entityType",
-                        PropertyStructure.NAME: "entityType",
+                        PropertyStructure.NAME: "Entity Type Property",
                         PropertyStructure.DMS_NAME: "entityType",
-                        PropertyStructure.DESCRIPTION: "entityType",
+                        PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                         PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     },
                     property_group="EntityTypeGroup",
@@ -909,9 +909,9 @@ class SparsePropertiesProcessor(BaseProcessor):
                     self._create_property_row(
                         {
                             PropertyStructure.ID: "entityType",
-                            PropertyStructure.NAME: "entityType",
+                            PropertyStructure.NAME: "Entity Type Property",
                             PropertyStructure.DMS_NAME: "entityType",
-                            PropertyStructure.DESCRIPTION: "entityType",
+                            PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                             PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                             PropertyStructure.TARGET_TYPE: "String",
                             PropertyStructure.IS_REQUIRED: True,
