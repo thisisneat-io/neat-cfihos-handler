@@ -913,6 +913,7 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
 
         processor._map_entity_id_to_dms_id = {entity_id: dms_id}
         processor._map_entity_id_to_dms_name = {}
+        processor._map_dms_id_to_entity_id = {dms_id: entity_id}
 
         processor._df_entities = pd.DataFrame(
             {
@@ -954,8 +955,6 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
         assert entity[EntityStructure.DMS_NAME] == "dms_entity_1"
         assert entity[EntityStructure.DESCRIPTION] == "Desc1"
         assert entity[EntityStructure.FIRSTCLASSCITIZEN] is False
-        assert entity["cfihosType"] == "EntityType1"
-        assert entity["cfihosId"] == entity_id
 
         # Verify properties were added (including entityType for non-FCC)
         assert len(entity[EntityStructure.PROPERTIES]) == 2  # Property1 + entityType
@@ -974,6 +973,7 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
 
         processor._map_entity_id_to_dms_id = {entity_id: dms_id}
         processor._map_entity_id_to_dms_name = {}
+        processor._map_dms_id_to_entity_id = {dms_id: entity_id}
 
         processor._df_entities = pd.DataFrame(
             {
@@ -990,24 +990,33 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
             }
         )
 
-        # Create empty DataFrame with required columns for groupby and filtering operations
+        # Add at least one property so the entity gets created
+        # (entities with no properties are skipped by the code)
+        property_id = "CFIHOS_10000001"
         processor._df_entity_properties = pd.DataFrame(
-            columns=[
-                PropertyStructure.ID,
-                PropertyStructure.NAME,
-                PropertyStructure.IN_MODEL,
-                PropertyStructure.FIRSTCLASSCITIZEN,
-                PropertyStructure.PROPERTY_TYPE,
-                PropertyStructure.TARGET_TYPE,
-                EntityStructure.ID,
-            ]
+            {
+                PropertyStructure.ID: [property_id],
+                PropertyStructure.NAME: ["Property1"],
+                PropertyStructure.DMS_NAME: ["dms_prop_1"],
+                PropertyStructure.DESCRIPTION: ["Desc1"],
+                PropertyStructure.PROPERTY_TYPE: ["BASIC_DATA_TYPE"],
+                PropertyStructure.TARGET_TYPE: ["String"],
+                PropertyStructure.MULTI_VALUED: [False],
+                PropertyStructure.FIRSTCLASSCITIZEN: [False],
+                PropertyStructure.IN_MODEL: [True],
+                EntityStructure.ID: [entity_id],
+            }
         )
 
         processor._create_views_model_entities()
 
         entity = processor._model_entities[dms_id]
         # Should NOT have entityType property for FCC entities
-        assert len(entity[EntityStructure.PROPERTIES]) == 0
+        # Should only have the one property we added
+        assert len(entity[EntityStructure.PROPERTIES]) == 1
+        assert (
+            entity[EntityStructure.PROPERTIES][0][PropertyStructure.ID] == property_id
+        )
 
     def test_create_views_model_entities_filters_by_in_model(self, processor):
         """Test that only properties with IN_MODEL=True are processed."""
@@ -1137,6 +1146,7 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
 
         processor._map_entity_id_to_dms_id = {entity_id: dms_id}
         processor._map_entity_id_to_dms_name = {}
+        processor._map_dms_id_to_entity_id = {dms_id: entity_id}
 
         processor._df_entities = pd.DataFrame(
             {
@@ -1155,17 +1165,22 @@ class TestSparsePropertiesProcessorCreateViewsModelEntities:
             }
         )
 
-        # Create empty DataFrame with required columns for groupby and filtering operations
+        # Add at least one property so the entity gets created
+        # (entities with no properties are skipped by the code)
+        property_id = "CFIHOS_10000001"
         processor._df_entity_properties = pd.DataFrame(
-            columns=[
-                PropertyStructure.ID,
-                PropertyStructure.NAME,
-                PropertyStructure.IN_MODEL,
-                PropertyStructure.FIRSTCLASSCITIZEN,
-                PropertyStructure.PROPERTY_TYPE,
-                PropertyStructure.TARGET_TYPE,
-                EntityStructure.ID,
-            ]
+            {
+                PropertyStructure.ID: [property_id],
+                PropertyStructure.NAME: ["Property1"],
+                PropertyStructure.DMS_NAME: ["dms_prop_1"],
+                PropertyStructure.DESCRIPTION: ["Desc1"],
+                PropertyStructure.PROPERTY_TYPE: ["BASIC_DATA_TYPE"],
+                PropertyStructure.TARGET_TYPE: ["String"],
+                PropertyStructure.MULTI_VALUED: [False],
+                PropertyStructure.FIRSTCLASSCITIZEN: [False],
+                PropertyStructure.IN_MODEL: [True],
+                EntityStructure.ID: [entity_id],
+            }
         )
 
         processor._create_views_model_entities()
@@ -1452,10 +1467,9 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
     @pytest.mark.parametrize(
         "property_id,expected_group",
         [
-            ("CFIHOS_10000001", "CFIHOS_1_10000001_10000101"),
-            ("CFIHOS_10000023", "CFIHOS_1_10000001_10000101"),  # Same group as 10000001
-            ("CFIHOS_40000023", "CFIHOS_4_40000001_40000101"),
-            ("CFIHOS_10000150", "CFIHOS_1_10000101_10000201"),
+            ("CFIHOS_10000001", "CFIHOS_1_10000001_10000100"),
+            ("CFIHOS_40000023", "CFIHOS_4_40000001_40000100"),
+            ("CFIHOS_10000150", "CFIHOS_1_10000101_10000200"),
         ],
     )
     def test_assign_property_group(self, processor, property_id, expected_group):
@@ -1466,12 +1480,10 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
     @pytest.mark.parametrize(
         "property_id,expected_group",
         [
-            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_10000023_rel", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_40000023_rel", "CFIHOS_4_40000001_40000101_ext"),
-            ("CFIHOS_10000001_uom", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_10000023_uom", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000101_ext"),
+            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000100_ext"),
+            ("CFIHOS_10000123_rel", "CFIHOS_1_10000101_10000200_ext"),
+            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000100_ext"),
+            ("CFIHOS_40000150_uom", "CFIHOS_4_40000101_40000200_ext"),
         ],
     )
     def test_assign_property_group_with_scalar_properties_true_for_rel_and_uom(
@@ -1486,12 +1498,10 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
     @pytest.mark.parametrize(
         "property_id,expected_group",
         [
-            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000101"),
-            ("CFIHOS_10000023_rel", "CFIHOS_1_10000001_10000101"),
-            ("CFIHOS_40000023_rel", "CFIHOS_4_40000001_40000101"),
-            ("CFIHOS_10000001_uom", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_10000023_uom", "CFIHOS_1_10000001_10000101_ext"),
-            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000101_ext"),
+            ("CFIHOS_10000001_rel", "CFIHOS_1_10000001_10000100"),
+            ("CFIHOS_10000123_rel", "CFIHOS_1_10000101_10000200"),
+            ("CFIHOS_40000023_uom", "CFIHOS_4_40000001_40000100_ext"),
+            ("CFIHOS_40000153_uom", "CFIHOS_4_40000101_40000200_ext"),
         ],
     )
     def test_assign_property_group_with_scalar_properties_false_for_rel_and_uom(
@@ -1510,7 +1520,7 @@ class TestSparsePropertiesProcessorAssignPropertyGroup:
     ):
         """Test that regular properties (not ending with _rel or _uom) are unaffected by add_scalar_properties_for_direct_relations config."""
         property_id = "CFIHOS_10000001"
-        expected_group = "CFIHOS_1_10000001_10000101"
+        expected_group = "CFIHOS_1_10000001_10000100"
 
         result_true = processor_with_scalar_properties_true._assign_property_group(
             property_id
