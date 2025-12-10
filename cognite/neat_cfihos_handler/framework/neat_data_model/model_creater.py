@@ -115,22 +115,23 @@ def build_neat_model_from_entities(
         for prop_data in entity_data[EntityStructure.PROPERTIES]:
             lst_property_container_indexes = []
             index_order = 0
-            if (
-                containers_indexes is not None
-                and (
-                entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]] in containers_indexes.keys()
-                or entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_NAME]] in containers_indexes.keys()
-            )
-                
-            ):
-                for container_index in containers_indexes[
-                    entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]]
-                ]:
-                    if prop_data[PropertyStructure.ID] in container_index["properties"] or prop_data[PropertyStructure.DMS_NAME] in container_index["properties"]:
-                        lst_property_container_indexes.append(
-                            f'{container_index["index_type"]}:{container_index["index_id"]}(cursorable={container_index["cursorable"]}, order={index_order})'
-                        )
-                        index_order += 1
+            if containers_indexes is not None:
+                index_container_identifire = (
+                    CfihosDmsIdentifierMapping.CFIHOS_CODE
+                    if entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]] in containers_indexes.keys()
+                    else (
+                        CfihosDmsIdentifierMapping.CFIHOS_NAME
+                        if entity_data[map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_NAME]] in containers_indexes.keys()
+                        else None
+                    )
+                )
+                if index_container_identifire is not None:
+                    for container_index in containers_indexes[entity_data[map_entity_identifier[index_container_identifire]]]:
+                        if prop_data[PropertyStructure.ID] in container_index["properties"] or prop_data[PropertyStructure.DMS_NAME] in container_index["properties"]:
+                            lst_property_container_indexes.append(
+                                f'{container_index["index_type"]}:{container_index["index_id"]}(cursorable={container_index["cursorable"]}, order={index_order})'
+                            )
+                            index_order += 1
             if prop_data[PropertyStructure.PROPERTY_TYPE] in [
                 Relations.DIRECT,
                 Relations.REVERSE,
