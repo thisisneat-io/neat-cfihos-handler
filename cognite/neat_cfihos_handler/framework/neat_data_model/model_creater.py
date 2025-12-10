@@ -36,14 +36,6 @@ map_entity_identifier = {
     CfihosDmsIdentifierMapping.CFIHOS_NAME: EntityStructure.DMS_NAME,
     CfihosDmsIdentifierMapping.CFIHOS_CODE: EntityStructure.ID,
 }
-map_source_edge_identifier = {
-    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.EDGE_SOURCE_DMS_NAME,
-    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.EDGE_SOURCE,
-}
-map_target_edge_identifier = {
-    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.EDGE_TARGET_DMS_NAME,
-    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.EDGE_TARGET,
-}
 map_property_group_identifier = {
     CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.PROPERTY_GROUP_DMS_NAME,
     CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.PROPERTY_GROUP,
@@ -150,12 +142,6 @@ def build_neat_model_from_entities(
                         container_reference = None
                         value_type_property = (
                             entities[prop_data[PropertyStructure.EDGE_TARGET]][
-                                map_entity_identifier[dms_identifire]
-                                if not force_code_as_view_id
-                                else map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
-                            ]
-                            if prop_data[PropertyStructure.EDGE_DIRECTION] == "inwards"
-                            else entities[prop_data[PropertyStructure.EDGE_SOURCE]][
                                 map_entity_identifier[dms_identifire]
                                 if not force_code_as_view_id
                                 else map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
