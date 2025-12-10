@@ -173,7 +173,6 @@ class SparseCfihosManager(BaseCfihosManager):
 
         scoped_model = collect_model_subset(
             full_model=self.model_processor.model_entities,
-            scope_config=self.processor_config["scope_config"],
             scope=views_scope["scope_subset"],
             containers_space=self._container_space,
         )

@@ -264,7 +264,6 @@ def dfs(visited: set, entity_id: str, full_model: dict):
 
 def collect_model_subset(
     full_model: dict,
-    scope_config: str,
     scope: list[str],
     containers_space: str = None,
 ):
@@ -284,18 +283,7 @@ def collect_model_subset(
     entities = {
         cfihos_id: full_model[cfihos_id]
         for cfihos_id in full_model
-        if (
-            (scope_config == ScopeConfig.SCOPED and cfihos_id in scope)
-            or (
-                scope_config == ScopeConfig.TAGS
-                and cfihos_id.startswith(constants.CFIHOS_TYPE_TAG_PREFIX)
-            )
-            or (
-                scope_config == ScopeConfig.EQUIPMENT
-                and cfihos_id.startswith(constants.CFIHOS_TYPE_EQUIPMENT_PREFIX)
-            )
-            or full_model[cfihos_id][EntityStructure.FIRSTCLASSCITIZEN]
-        )
+        if cfihos_id in scope
     }
 
     for entity_id in entities:
