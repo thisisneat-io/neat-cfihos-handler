@@ -50,11 +50,17 @@ class SparseCfihosManager(BaseCfihosManager):
         self._containers_indexes = self.processor_config.get("containers_indexes", {})
         self._container_space = self.processor_config["container_data_model_space"]
         self._views_space = self.processor_config["views_data_model_space"]
-        self._container_model_version = self.processor_config["container_data_model_version"]
+        self._container_model_version = self.processor_config[
+            "container_data_model_version"
+        ]
         self._model_creator = self.processor_config["model_creator"]
         self._container_model_name = self.processor_config["container_data_model_name"]
-        self._container_model_description = self.processor_config["container_data_model_description"]
-        self._container_model_external_id = self.processor_config["container_data_model_external_id"]
+        self._container_model_description = self.processor_config[
+            "container_data_model_description"
+        ]
+        self._container_model_external_id = self.processor_config[
+            "container_data_model_external_id"
+        ]
         self.dms_identifire = self.processor_config["dms_identifire"]
         self.processor_type = self.processor_config["processor_type"]
         self.model_processor = SparsePropertiesProcessor(
