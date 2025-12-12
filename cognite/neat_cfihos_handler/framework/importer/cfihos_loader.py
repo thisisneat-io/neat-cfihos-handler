@@ -240,8 +240,8 @@ class CfihosModelLoader(BaseModelInterpreter):
     # Name of the model processor (from the config file)
     processor_config_name: str
 
-    model_interpreter_name = "CfihosModelLoader"
-    interpreting_model_name: str = "CFIHOS"
+    model_interpreter_name = "CfihosModelLoader" # TODO: check if this have to be moved to the base class
+    interpreting_model_name: str = "CFIHOS" # TODO: check if this have to be moved to the base class
     id_prefix: str = field(default="")
     if id_prefix == "":
         raise ValueError("id_prefix must be set for CfihosModelLoader")
