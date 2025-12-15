@@ -683,9 +683,6 @@ class CfihosModelLoader(BaseModelInterpreter):
         df_prop = df_prop.merge(
             df, on=EntityStructure.NAME, how="left", suffixes=("", "_entity")
         )
-        # df_prop = df_prop.loc[
-        #     df_prop[PropertyStructure.IN_MODEL].astype(str).str.lower() == "true"
-        # ]
         # remove enitities columns from df_prop aftr merging
         df_prop = df_prop[
             list(ENTITY_RELEVANT_PROPERTY_COLUMNS.values()) + [EntityStructure.ID]
@@ -1059,11 +1056,6 @@ class CfihosModelLoader(BaseModelInterpreter):
                 mapping_table=TAG_OR_EQUIPMENT_PROPERTY_METADATA_MAPPING,
                 metadata_subset=df_prop_metadata,
             )
-
-        # # remove properties that are not in model
-        # df_prop = df_prop.loc[
-        #     df_prop[PropertyStructure.IN_MODEL].astype(str).str.lower() == "true"
-        # ]
 
         join_key = PropertyStructure.ID
         metadata_suffix = "_metadata"
