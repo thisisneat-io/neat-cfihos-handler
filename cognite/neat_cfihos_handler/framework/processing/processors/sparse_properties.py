@@ -839,15 +839,7 @@ class SparsePropertiesProcessor(BaseProcessor):
             )
 
             # Loop over own properties (excluding inherited ones)
-            for _, prop_row in self._df_entity_properties[
-                (
-                    (
-                        self._df_entity_properties[EntityStructure.ID]
-                        == row[EntityStructure.ID]
-                    )
-                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
-                )
-            ].iterrows():
+            for _, prop_row in df_current_entity_properties.iterrows():
                 if prop_row[PropertyStructure.ID] in inherited_props:
                     continue  # skip inherited property
                 property_entity = self._df_entities[
