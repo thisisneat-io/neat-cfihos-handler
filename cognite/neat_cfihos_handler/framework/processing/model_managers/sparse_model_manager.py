@@ -113,7 +113,6 @@ class SparseCfihosManager(BaseCfihosManager):
             "container_data_model_description",
             "container_data_model_external_id",
             "dms_identifire",
-            "scope_config",
             "processor_type",
             "add_scalar_properties_for_direct_relations",
         ]

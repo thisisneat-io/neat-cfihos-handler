@@ -271,7 +271,6 @@ def collect_model_subset(
 
     Args:
         full_model (dict): Complete model containing all entities.
-        scope_config (str): Configuration defining how to scope the model (SCOPED, TAGS, EQUIPMENT).
         scope (list[str]): List of entity IDs to include when using SCOPED configuration.
         containers_space (str): The space identifier where the containers reside.
 
