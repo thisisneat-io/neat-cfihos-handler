@@ -1101,6 +1101,7 @@ class CfihosModelLoader(BaseModelInterpreter):
                         PropertyStructure.ID,
                         PropertyStructure.NAME,
                         PropertyStructure.UOM,
+                        PropertyStructure.IN_MODEL,
                         *metadata_columns_of_interest,
                     ]
                 )

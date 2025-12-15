@@ -77,7 +77,7 @@ TAG_OR_EQUIPMENT_PROPERTY_METADATA_MAPPING = {
     "property data type": PropertyStructure.TARGET_TYPE,
     "property picklist name": PropertyStructure.ENUMERATION_TABLE,
     "unit of measure dimension code": PropertyStructure.UOM,
-    "CDF in model": PropertyStructure.IN_MODEL,
+
 }
 
 
