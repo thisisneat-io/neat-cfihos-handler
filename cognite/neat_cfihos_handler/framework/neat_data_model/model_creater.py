@@ -187,7 +187,7 @@ def build_neat_model_from_entities(
                                 prop_data[
                                     map_property_group_identifier[
                                         dms_identifire if not force_code_as_view_id
-                                    else [CfihosDmsIdentifierMapping.CFIHOS_CODE]]]
+                                    else CfihosDmsIdentifierMapping.CFIHOS_CODE]]
                                      if prop_data[PropertyStructure.PROPERTY_GROUP] is not None
                                 else None
                             )
