@@ -50,15 +50,25 @@ class SparseCfihosManager(BaseCfihosManager):
         self._containers_indexes = self.processor_config.get("containers_indexes", {})
         self._container_space = self.processor_config["container_data_model_space"]
         self._views_space = self.processor_config["views_data_model_space"]
-        self._model_version = self.processor_config["model_version"]
+        self._container_model_version = self.processor_config[
+            "container_data_model_version"
+        ]
         self._model_creator = self.processor_config["model_creator"]
-        self._model_name = self.processor_config["data_model_name"]
-        self._model_description = self.processor_config["data_model_description"]
-        self._model_external_id = self.processor_config["data_model_external_id"]
+        self._container_model_name = self.processor_config["container_data_model_name"]
+        self._container_model_description = self.processor_config[
+            "container_data_model_description"
+        ]
+        self._container_model_external_id = self.processor_config[
+            "container_data_model_external_id"
+        ]
         self.dms_identifire = self.processor_config["dms_identifire"]
         self.processor_type = self.processor_config["processor_type"]
         self.model_processor = SparsePropertiesProcessor(
-            **self._processor_config, model_type=model_type
+            **self._processor_config,
+            model_type=model_type,
+            add_scalar_properties_for_direct_relations=self.processor_config[
+                "add_scalar_properties_for_direct_relations"
+            ],
         )
         self.model_processor.process_and_collect_models()
         self._model_properties = self.model_processor.model_properties
@@ -97,14 +107,14 @@ class SparseCfihosManager(BaseCfihosManager):
             "containers_indexes",
             "container_data_model_space",
             "views_data_model_space",
-            "model_version",
+            "container_data_model_version",
             "model_creator",
-            "data_model_name",
-            "data_model_description",
-            "data_model_external_id",
+            "container_data_model_name",
+            "container_data_model_description",
+            "container_data_model_external_id",
             "dms_identifire",
-            "scope_config",
             "processor_type",
+            "add_scalar_properties_for_direct_relations",
         ]
         missing_keys = [
             key for key in required_keys if key not in self.processor_config
@@ -135,7 +145,7 @@ class SparseCfihosManager(BaseCfihosManager):
             include_cdm=True,
             containers_indexes=self._containers_indexes,
             containers_space=self._container_space,
-            force_code_as_view_id=True,
+            force_code_as_view_id=False,
         )
 
         logging.info("Generating NEAT Data Model ...")
@@ -149,10 +159,10 @@ class SparseCfihosManager(BaseCfihosManager):
                 "dataModelType": "enterprise",
                 "schema": "complete",
                 "space": self._container_space,
-                "name": self._model_name,
-                "description": self._model_description,
-                "external_id": self._model_external_id,
-                "version": self._model_version,
+                "name": self._container_model_name,
+                "description": self._container_model_description,
+                "external_id": self._container_model_external_id,
+                "version": self._container_model_version,
                 "creator": self._model_creator,
             },
         )
@@ -168,7 +178,6 @@ class SparseCfihosManager(BaseCfihosManager):
 
         scoped_model = collect_model_subset(
             full_model=self.model_processor.model_entities,
-            scope_config=self.processor_config["scope_config"],
             scope=views_scope["scope_subset"],
             containers_space=self._container_space,
         )
@@ -179,6 +188,7 @@ class SparseCfihosManager(BaseCfihosManager):
             entities=scoped_model,
             dms_identifire=self.dms_identifire,
             include_containers=False,
+            include_cdm=True,
         )
 
         logging.info(f"Building {len(scoped_model)} scoped entity views")

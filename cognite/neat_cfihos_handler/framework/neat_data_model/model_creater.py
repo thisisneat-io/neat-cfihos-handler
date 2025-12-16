@@ -6,6 +6,7 @@ from cognite.neat_cfihos_handler.framework.common.constants import (
     CDF_CDM_VERSION,
 )
 from cognite.neat_cfihos_handler.framework.common.generic_classes import (
+    CfihosDmsIdentifierMapping,
     EntityStructure,
     PropertyStructure,
     Relations,
@@ -20,24 +21,24 @@ from cognite.neat_cfihos_handler.framework.common.utils import (
 logging = log_init(f"{__name__}", "i")
 
 map_property_identifier = {
-    "cfihos_name": PropertyStructure.DMS_NAME,
-    "cfihos_code": PropertyStructure.ID,
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.DMS_NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.ID,
+}
+map_property_name = {
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.ID,
 }
 map_reverse_direct_relation_identifier = {
-    "cfihos_name": PropertyStructure.REV_PROPERTY_DMS_NAME,
-    "cfihos_code": PropertyStructure.REV_THROUGH_PROPERTY,
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.REV_PROPERTY_DMS_NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.REV_THROUGH_PROPERTY,
 }
 map_entity_identifier = {
-    "cfihos_name": EntityStructure.DMS_NAME,
-    "cfihos_code": EntityStructure.ID,
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: EntityStructure.DMS_NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: EntityStructure.ID,
 }
-map_source_edge_identifier = {
-    "cfihos_name": PropertyStructure.EDGE_SOURCE_DMS_NAME,
-    "cfihos_code": PropertyStructure.EDGE_SOURCE,
-}
-map_target_edge_identifier = {
-    "cfihos_name": PropertyStructure.EDGE_TARGET_DMS_NAME,
-    "cfihos_code": PropertyStructure.EDGE_TARGET,
+map_property_group_identifier = {
+    CfihosDmsIdentifierMapping.CFIHOS_NAME: PropertyStructure.PROPERTY_GROUP_DMS_NAME,
+    CfihosDmsIdentifierMapping.CFIHOS_CODE: PropertyStructure.PROPERTY_GROUP,
 }
 
 
@@ -69,6 +70,12 @@ def build_neat_model_from_entities(
     containers = []
     properties = []
 
+    # replace "-" with "_" in the configured containers_indexes keys for safe index parsing
+    if containers_indexes is not None:
+        containers_indexes = {
+            key.replace("-", "_"): value for key, value in containers_indexes.items()
+        }
+
     if include_cdm:
         for cdm_view in COGNITE_CONCEPTS:
             views.append(
@@ -81,16 +88,19 @@ def build_neat_model_from_entities(
             )
     for _, entity_data in entities.items():
         parents_ext_ids: list[str] = []
-        inherits_from = entity_data.get(EntityStructure.INHERITS_FROM_ID)
-        if inherits_from:
+        full_inheritance = entity_data.get(EntityStructure.FULL_INHERITANCE)
+        if full_inheritance:
             parents_ext_ids.extend(
                 [
                     entities[parent_id][map_entity_identifier[dms_identifire]]
                     if not force_code_as_view_id
-                    else entities[parent_id][map_entity_identifier["cfihos_code"]]
-                    for parent_id in inherits_from
+                    else entities[parent_id][
+                        map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
+                    ]
+                    for parent_id in full_inheritance
+                    if parent_id in entities
                 ]
-                if inherits_from
+                if full_inheritance
                 else []
             )
 
@@ -109,19 +119,38 @@ def build_neat_model_from_entities(
         for prop_data in entity_data[EntityStructure.PROPERTIES]:
             lst_property_container_indexes = []
             index_order = 0
-            if (
-                containers_indexes is not None
-                and entity_data[map_entity_identifier["cfihos_code"]]
-                in containers_indexes.keys()
-            ):
-                for container_index in containers_indexes[
-                    entity_data[map_entity_identifier["cfihos_code"]]
-                ]:
-                    if prop_data[PropertyStructure.ID] in container_index["properties"]:
-                        lst_property_container_indexes.append(
-                            f'{container_index["index_type"]}:{container_index["index_id"]}(cursorable={container_index["cursorable"]}, order={index_order})'
-                        )
-                        index_order += 1
+            if containers_indexes is not None:
+                index_container_identifire = (
+                    CfihosDmsIdentifierMapping.CFIHOS_CODE
+                    if entity_data[
+                        map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
+                    ]
+                    in containers_indexes.keys()
+                    else (
+                        CfihosDmsIdentifierMapping.CFIHOS_NAME
+                        if entity_data[
+                            map_entity_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_NAME
+                            ]
+                        ]
+                        in containers_indexes.keys()
+                        else None
+                    )
+                )
+                if index_container_identifire is not None:
+                    for container_index in containers_indexes[
+                        entity_data[map_entity_identifier[index_container_identifire]]
+                    ]:
+                        if (
+                            prop_data[PropertyStructure.ID]
+                            in container_index["properties"]
+                            or prop_data[PropertyStructure.DMS_NAME]
+                            in container_index["properties"]
+                        ):
+                            lst_property_container_indexes.append(
+                                f'{container_index["index_type"]}:{container_index["index_id"]}(cursorable={container_index["cursorable"]}, order={index_order})'
+                            )
+                            index_order += 1
             if prop_data[PropertyStructure.PROPERTY_TYPE] in [
                 Relations.DIRECT,
                 Relations.REVERSE,
@@ -131,19 +160,15 @@ def build_neat_model_from_entities(
                 match prop_data[PropertyStructure.PROPERTY_TYPE]:
                     case Relations.EDGE:
                         container_reference = None
-                        value_type_property = (
-                            entities[prop_data[PropertyStructure.EDGE_TARGET]][
-                                map_entity_identifier[dms_identifire]
-                                if not force_code_as_view_id
-                                else map_entity_identifier["cfihos_code"]
+                        value_type_property = entities[
+                            prop_data[PropertyStructure.EDGE_TARGET]
+                        ][
+                            map_entity_identifier[dms_identifire]
+                            if not force_code_as_view_id
+                            else map_entity_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_CODE
                             ]
-                            if prop_data[PropertyStructure.EDGE_DIRECTION] == "inwards"
-                            else entities[prop_data[PropertyStructure.EDGE_SOURCE]][
-                                map_entity_identifier[dms_identifire]
-                                if not force_code_as_view_id
-                                else map_entity_identifier["cfihos_code"]
-                            ]
-                        )
+                        ]
                         container_property = None
                         connection_property = f"edge(type={prop_data[PropertyStructure.EDGE_EXTERNAL_ID]}, direction={prop_data[PropertyStructure.EDGE_DIRECTION]})"
                         max_count_property = "inf"
@@ -153,7 +178,9 @@ def build_neat_model_from_entities(
                         ][
                             map_entity_identifier[dms_identifire]
                             if not force_code_as_view_id
-                            else map_entity_identifier["cfihos_code"]
+                            else map_entity_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_CODE
+                            ]
                         ]
                         container_reference = None
                         container_property = None
@@ -165,7 +192,9 @@ def build_neat_model_from_entities(
                                 entities[prop_data[PropertyStructure.TARGET_TYPE]][
                                     map_entity_identifier[dms_identifire]
                                     if not force_code_as_view_id
-                                    else map_entity_identifier["cfihos_code"]
+                                    else map_entity_identifier[
+                                        CfihosDmsIdentifierMapping.CFIHOS_CODE
+                                    ]
                                 ]
                                 if prop_data[PropertyStructure.TARGET_TYPE] is not None
                                 else None
@@ -179,9 +208,22 @@ def build_neat_model_from_entities(
                         container_reference = (
                             containers_space
                             + ":"
-                            + prop_data[PropertyStructure.PROPERTY_GROUP]
+                            + (
+                                prop_data[
+                                    map_property_group_identifier[
+                                        dms_identifire
+                                        if not force_code_as_view_id
+                                        else CfihosDmsIdentifierMapping.CFIHOS_CODE
+                                    ]
+                                ]
+                                if prop_data[PropertyStructure.PROPERTY_GROUP]
+                                is not None
+                                else None
+                            )
                         )
-                        container_property = prop_data[PropertyStructure.ID]
+                        container_property = prop_data[
+                            map_property_identifier[dms_identifire]
+                        ]
                         connection_property = "direct"
                         max_count_property = 1
                     case _:
@@ -194,9 +236,16 @@ def build_neat_model_from_entities(
                     create_neat_property_structure(
                         view=entity_data[map_entity_identifier[dms_identifire]]
                         if not force_code_as_view_id
-                        else entity_data[map_entity_identifier["cfihos_code"]],
+                        else entity_data[
+                            map_entity_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_CODE
+                            ]
+                        ],
                         property=prop_data[map_property_identifier[dms_identifire]],
-                        name=prop_data[PropertyStructure.NAME],
+                        # if dms_identifire is CFIHOS_CODE, then use the property name, otherwise use the property id
+                        name=prop_data[PropertyStructure.NAME]
+                        if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
+                        else prop_data[PropertyStructure.ID],
                         description=prop_data[PropertyStructure.DESCRIPTION],
                         connection=connection_property,
                         value_type=value_type_property
@@ -226,25 +275,48 @@ def build_neat_model_from_entities(
                     create_neat_property_structure(
                         view=entity_data[map_entity_identifier[dms_identifire]]
                         if not force_code_as_view_id
-                        else entity_data[map_entity_identifier["cfihos_code"]],
+                        else entity_data[
+                            map_entity_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_CODE
+                            ]
+                        ],
                         property=prop_data[map_property_identifier[dms_identifire]],
-                        name=prop_data[PropertyStructure.NAME],
+                        # if dms_identifire is CFIHOS_CODE, then use the property name, otherwise use the property id
+                        name=prop_data[PropertyStructure.NAME]
+                        if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
+                        else prop_data[PropertyStructure.ID],
                         description=prop_data[PropertyStructure.DESCRIPTION],
                         value_type=prop_data[PropertyStructure.TARGET_TYPE],
                         min_count=0,
                         max_count=1,
+                        index=",".join(lst_property_container_indexes)
+                        if len(lst_property_container_indexes) > 0
+                        and include_containers
+                        else None,
                         container=containers_space
                         + ":"
-                        + prop_data[PropertyStructure.PROPERTY_GROUP],
-                        container_property=prop_data[PropertyStructure.ID],
+                        + prop_data[map_property_group_identifier[dms_identifire]]
+                        if not force_code_as_view_id
+                        else prop_data[
+                            map_property_group_identifier[
+                                CfihosDmsIdentifierMapping.CFIHOS_CODE
+                            ]
+                        ],
+                        container_property=prop_data[
+                            map_property_identifier[dms_identifire]
+                        ],
                     )
                 )
         views.append(
             create_neat_view_structure(
                 view=entity_data[map_entity_identifier[dms_identifire]]
                 if not force_code_as_view_id
-                else entity_data[map_entity_identifier["cfihos_code"]],
-                view_name=entity_data[EntityStructure.NAME],
+                else entity_data[
+                    map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
+                ],
+                view_name=entity_data[EntityStructure.NAME]
+                if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
+                else entity_data[EntityStructure.ID],
                 view_description=entity_data[EntityStructure.DESCRIPTION],
                 implements=",".join(parents_ext_ids) if parents_ext_ids else None,
                 filter=entity_data[EntityStructure.VIEW_FILTER]
@@ -256,7 +328,7 @@ def build_neat_model_from_entities(
         if include_containers:
             containers.append(
                 create_neat_container_structure(
-                    container=entity_data[map_entity_identifier["cfihos_code"]]
+                    container=entity_data[map_entity_identifier[dms_identifire]]
                 )
             )
 

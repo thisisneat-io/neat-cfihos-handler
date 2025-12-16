@@ -55,6 +55,7 @@ class SparsePropertiesProcessor(BaseProcessor):
     """
 
     model_type: str = field(default=SparseModelType.CONTAINERS)
+    add_scalar_properties_for_direct_relations: bool = field(init=True, default=False)
     model_processors: list[CfihosModelLoader] = field(default_factory=list, init=False)
 
     def __post_init__(self):
@@ -210,7 +211,8 @@ class SparsePropertiesProcessor(BaseProcessor):
         # Step 1: build the full inheritance of entities
         self._build_entities_full_inheritance()
         # Step 2: extend the direct relations properties with sclarified properties
-        self._extend_additional_properties_for_direct_relations()
+        if self.add_scalar_properties_for_direct_relations:
+            self._extend_additional_properties_for_direct_relations()
         # Step 3: extend the properties that have relevant UOM with string properties suffexed with _UOM
         self._extend_UOM_properties()
 
@@ -234,6 +236,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         self,
         property_item: dict,
         property_group=None,
+        property_group_dms_name=None,
         is_uom_variant=False,
         is_relationship_variant=False,
         is_custom_property=False,
@@ -248,6 +251,7 @@ class SparsePropertiesProcessor(BaseProcessor):
         Args:
             property_item (dict): The property data (dictionary).
             property_group (str, optional): The property group for the property, if applicable.
+            property_group_dms_name (str, optional): The property group DMS name for the property, if applicable.
             is_uom_variant (bool, optional): Flag to indicate if this is a UOM variant.
             is_relationship_variant (bool, optional): Flag to indicate if this is a relationship variant.
             is_custom_property (bool, optional): Flag to indicate if this is a custom property.
@@ -290,6 +294,7 @@ class SparsePropertiesProcessor(BaseProcessor):
             ),
             PropertyStructure.INHERITED: False,
             PropertyStructure.PROPERTY_GROUP: property_group,
+            PropertyStructure.PROPERTY_GROUP_DMS_NAME: property_group_dms_name,
             PropertyStructure.CUSTOM_PROPERTY: is_custom_property,
             PropertyStructure.FIRSTCLASSCITIZEN: is_first_class_citzen,  # label the first class citizen
             EntityStructure.ID: property_item.get(EntityStructure.ID, None),
@@ -539,7 +544,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                         prop_row[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
                     )
                     entity_property_row = self._create_property_row(
-                        prop_row, property_group=property_group_id
+                        prop_row, property_group=property_group_id, property_group_dms_name=property_group_id
                     )
                     if property_group_id not in entities:
                         entities[property_group_id] = {
@@ -559,14 +564,15 @@ class SparsePropertiesProcessor(BaseProcessor):
                             self._create_property_row(
                                 {
                                     PropertyStructure.ID: "entityType",
-                                    PropertyStructure.NAME: "entityType",
+                                    PropertyStructure.NAME: "Entity Type Property",
                                     PropertyStructure.DMS_NAME: "entityType",
-                                    PropertyStructure.DESCRIPTION: "entityType",
+                                    PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                                     PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                                     PropertyStructure.TARGET_TYPE: "String",
                                     PropertyStructure.IS_REQUIRED: True,
                                 },
                                 property_group="EntityTypeGroup",
+                                property_group_dms_name="EntityTypeGroup",
                             )
                         )
                     entities[property_group_id]["properties"].append(
@@ -576,24 +582,23 @@ class SparsePropertiesProcessor(BaseProcessor):
 
         entities["EntityTypeGroup"] = {
             EntityStructure.ID: "EntityTypeGroup",
-            EntityStructure.NAME: "EntityTypeGroup",
+            EntityStructure.NAME: "Entity type group instances container",
             EntityStructure.DMS_NAME: "EntityTypeGroup",
-            EntityStructure.DESCRIPTION: "Container that holds CFIHOS IDs to be used in filtering instances in wide containers",
+            EntityStructure.DESCRIPTION: "Container that holds CFIHOS IDs to be used in filtering instances in containers",
             EntityStructure.INHERITS_FROM_ID: None,
             EntityStructure.INHERITS_FROM_NAME: None,
             EntityStructure.FULL_INHERITANCE: None,
-            "cfihosType": "EntityTypeGroup",
-            "cfihosId": "EntityTypeGroup",
             EntityStructure.PROPERTIES: [
                 self._create_property_row(
                     {
                         PropertyStructure.ID: "entityType",
-                        PropertyStructure.NAME: "entityType",
+                        PropertyStructure.NAME: "Entity Type Property",
                         PropertyStructure.DMS_NAME: "entityType",
-                        PropertyStructure.DESCRIPTION: "entityType",
+                        PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                         PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     },
                     property_group="EntityTypeGroup",
+                    property_group_dms_name="EntityTypeGroup",
                     is_first_class_citzen=True,
                     is_edge_property=False,
                     is_reverse_relation=False,
@@ -725,6 +730,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                     entity_property_row = self._create_property_row(
                         prop,
                         property_group=prop[EntityStructure.ID].replace("-", "_"),
+                        property_group_dms_name=entities[property_group_id][EntityStructure.DMS_NAME],
                         is_first_class_citzen=True,
                         is_edge_property=prop[PropertyStructure.PROPERTY_TYPE]
                         == Relations.EDGE,
@@ -767,7 +773,19 @@ class SparsePropertiesProcessor(BaseProcessor):
         # Process each entity row
         for _, row in self._df_entities.iterrows():
             unique_entity_id = self._map_entity_id_to_dms_id[row[EntityStructure.ID]]
+            df_current_entity_properties = self._df_entity_properties[
+                (
+                    (
+                        self._df_entity_properties[EntityStructure.ID]
+                        == row[EntityStructure.ID]
+                    )
+                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
+                )
+            ]
 
+            if df_current_entity_properties.empty:
+                # no available properties assigned to this entity. Skip it.
+                continue
             # Check for duplicates
             if unique_entity_id in entities:
                 raise NeatValueError(
@@ -790,9 +808,14 @@ class SparsePropertiesProcessor(BaseProcessor):
                 EntityStructure.INHERITS_FROM_NAME: row[
                     EntityStructure.INHERITS_FROM_NAME
                 ],
-                EntityStructure.FULL_INHERITANCE: row[EntityStructure.FULL_INHERITANCE],
-                "cfihosType": row["type"],
-                "cfihosId": row[EntityStructure.ID],
+                EntityStructure.FULL_INHERITANCE:(
+                    [
+                        self._map_entity_id_to_dms_id[parent_id]
+                        for parent_id in row[EntityStructure.FULL_INHERITANCE]
+                    ]
+                    if row[EntityStructure.FULL_INHERITANCE] is not None
+                    else None
+                ),
                 EntityStructure.PROPERTIES: [],
                 EntityStructure.FIRSTCLASSCITIZEN: bool(
                     row[EntityStructure.FIRSTCLASSCITIZEN]
@@ -816,18 +839,12 @@ class SparsePropertiesProcessor(BaseProcessor):
             )
 
             # Loop over own properties (excluding inherited ones)
-            for _, prop_row in self._df_entity_properties[
-                (
-                    (
-                        self._df_entity_properties[EntityStructure.ID]
-                        == row[EntityStructure.ID]
-                    )
-                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
-                )
-            ].iterrows():
+            for _, prop_row in df_current_entity_properties.iterrows():
                 if prop_row[PropertyStructure.ID] in inherited_props:
                     continue  # skip inherited property
-
+                property_entity = self._df_entities[
+                    (self._df_entities[EntityStructure.ID] == prop_row[EntityStructure.ID])
+                ].iloc[0]
                 # Check for duplicates
                 if (
                     not prop_row[PropertyStructure.FIRSTCLASSCITIZEN]
@@ -866,7 +883,11 @@ class SparsePropertiesProcessor(BaseProcessor):
                     if row[EntityStructure.FIRSTCLASSCITIZEN]
                     else self._assign_property_group(prop_row[PropertyStructure.ID])
                 )
-
+                property_group_dms_name = (
+                    property_entity[EntityStructure.DMS_NAME]
+                    if row[EntityStructure.FIRSTCLASSCITIZEN]
+                    else self._assign_property_group(prop_row[PropertyStructure.ID])
+                )
                 target_type = self._map_entity_id_to_dms_name.get(
                     prop_row[PropertyStructure.TARGET_TYPE],
                     prop_row[PropertyStructure.TARGET_TYPE],
@@ -875,6 +896,7 @@ class SparsePropertiesProcessor(BaseProcessor):
                 property_row = self._create_property_row(
                     prop_row,
                     property_group=property_group,
+                    property_group_dms_name=property_group_dms_name,
                     is_first_class_citzen=row[EntityStructure.FIRSTCLASSCITIZEN],
                     is_edge_property=prop_row[PropertyStructure.PROPERTY_TYPE]
                     == Relations.EDGE,
@@ -894,14 +916,15 @@ class SparsePropertiesProcessor(BaseProcessor):
                     self._create_property_row(
                         {
                             PropertyStructure.ID: "entityType",
-                            PropertyStructure.NAME: "entityType",
+                            PropertyStructure.NAME: "Entity Type Property",
                             PropertyStructure.DMS_NAME: "entityType",
-                            PropertyStructure.DESCRIPTION: "entityType",
+                            PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
                             PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                             PropertyStructure.TARGET_TYPE: "String",
                             PropertyStructure.IS_REQUIRED: True,
                         },
                         property_group="EntityTypeGroup",
+                        property_group_dms_name="EntityTypeGroup",
                     )
                 )
 
@@ -927,7 +950,7 @@ class SparsePropertiesProcessor(BaseProcessor):
     ) -> str:
         """Group non-FCC properties into groups of 100.
 
-        Example: CFIHOS_1_10000001_10000101, CFIHOS_4_40000001_40000101, etc.
+        Example: CFIHOS_1_10000001_10000100, CFIHOS_4_40000001_40000100, etc.
         """
         propertyId = propertyId.replace("-", "_")
         id_number = int(self._get_property_id_number(propertyId))
@@ -937,27 +960,31 @@ class SparsePropertiesProcessor(BaseProcessor):
         if id_number % container_property_limit == 0:
             property_group_id = (
                 f"{id_number - (id_number - 1) % container_property_limit}_"
-                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit}"
+                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit - 1}"
             )
         else:
             property_group_id = (
                 f"{id_number - id_number % container_property_limit + 1}_"
-                f"{id_number - id_number % container_property_limit + container_property_limit + 1}"
+                f"{id_number - id_number % container_property_limit + container_property_limit}"
             )
-
-        property_extention_suffix_list = ["_rel", "_uom"]
         property_group_id = (
             f"{property_group_id}_ext"
-            if any(
-                propertyId.lower().endswith(ext)
-                for ext in property_extention_suffix_list
+            if (
+                self.add_scalar_properties_for_direct_relations
+                and propertyId.lower().endswith("_rel")
             )
+            or (propertyId.lower().endswith("_uom"))
             else property_group_id
         )
         return f"{property_group_prefix}_{property_group_id}"
 
     def _build_entities_full_inheritance(self):
         """Update a 'full_inheritance' column to df_entities containing all ancestor entityIds."""
+        # Get set of entity IDs that have properties
+        entities_with_properties = set(
+            self._df_entity_properties[EntityStructure.ID].unique()
+        )
+        
         entity_to_parents = self._df_entities.set_index(EntityStructure.ID)[
             EntityStructure.INHERITS_FROM_ID
         ].to_dict()
@@ -974,9 +1001,12 @@ class SparsePropertiesProcessor(BaseProcessor):
                 ancestors = []
                 for parent in parents:
                     if parent is not None:
-                        ancestors.append(parent)
+                        # Only include ancestors that have properties
+                        if parent in entities_with_properties:
+                            ancestors.append(parent)
                         ancestors.extend(get_ancestors(parent))
-                memo[eid] = ancestors
+                # Filter to only include ancestors with properties
+                memo[eid] = [anc for anc in ancestors if anc in entities_with_properties]
             return memo[eid]
 
         self._df_entities[EntityStructure.FULL_INHERITANCE] = self._df_entities[

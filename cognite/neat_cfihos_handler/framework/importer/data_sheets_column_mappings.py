@@ -15,7 +15,7 @@ ENTITY_CDM_EXTENSION_MAPPING = {
 ENTITY_COLUMN_MAPPING = {
     "entity name": EntityStructure.NAME,
     "definition": EntityStructure.DESCRIPTION,
-    "is first class citizen": EntityStructure.FIRSTCLASSCITIZEN,
+    "CDF is first class citizen": EntityStructure.FIRSTCLASSCITIZEN,
 }
 
 ENTITY_EDGE_COLUMN_MAPPING = {
@@ -67,7 +67,7 @@ ENTITY_RELEVANT_PROPERTY_COLUMNS = {
     "CDF reverse property name": PropertyStructure.REV_PROPERTY_NAME,
     "CDF reverse property description": PropertyStructure.REV_PROPERTY_DESCRIPTION,
     "CDF isList": PropertyStructure.MULTI_VALUED,
-    "in model": PropertyStructure.IN_MODEL,
+    "CDF in model": PropertyStructure.IN_MODEL,
 }
 
 TAG_OR_EQUIPMENT_PROPERTY_METADATA_MAPPING = {
@@ -77,7 +77,7 @@ TAG_OR_EQUIPMENT_PROPERTY_METADATA_MAPPING = {
     "property data type": PropertyStructure.TARGET_TYPE,
     "property picklist name": PropertyStructure.ENUMERATION_TABLE,
     "unit of measure dimension code": PropertyStructure.UOM,
-    "in model": PropertyStructure.IN_MODEL,
+
 }
 
 
@@ -121,7 +121,7 @@ class TagOrEquipment:
             "property name": PropertyStructure.NAME,
             # TODO: Below covers only SI unit of measure, CHECK if imperial unit of measure is also needed
             "SI unit of measure CFIHOS unique code": PropertyStructure.UOM,
-            "in model": PropertyStructure.IN_MODEL,
+            "CDF in model": PropertyStructure.IN_MODEL,
         }
 
     @property
