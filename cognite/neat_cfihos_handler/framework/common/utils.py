@@ -240,7 +240,8 @@ def dfs(visited: set, entity_id: str, full_model: dict):
     if entity_id not in visited:
         visited.add(entity_id)
         entity_data = full_model[entity_id]
-        extends = entity_data.get(EntityStructure.INHERITS_FROM_ID, [])
+        inherits_from_id = entity_data.get(EntityStructure.INHERITS_FROM_ID, []) or []
+        extends = [item for item in inherits_from_id if item in full_model]
 
         if entity_data[EntityStructure.PROPERTIES]:
             properties_to_extend = set()
@@ -253,7 +254,7 @@ def dfs(visited: set, entity_id: str, full_model: dict):
                         properties_to_extend.add(prop_target_type)
             for prop_to_extend in properties_to_extend:
                 dfs(visited, prop_to_extend, full_model)
-        if extends is None:
+        if extends is None or len(extends) == 0:
             return visited
         for parent in extends:
             parent_entity_id = parent
@@ -263,7 +264,6 @@ def dfs(visited: set, entity_id: str, full_model: dict):
 
 def collect_model_subset(
     full_model: dict,
-    scope_config: str,
     scope: list[str],
     containers_space: str = None,
 ):
@@ -271,7 +271,6 @@ def collect_model_subset(
 
     Args:
         full_model (dict): Complete model containing all entities.
-        scope_config (str): Configuration defining how to scope the model (SCOPED, TAGS, EQUIPMENT).
         scope (list[str]): List of entity IDs to include when using SCOPED configuration.
         containers_space (str): The space identifier where the containers reside.
 
@@ -283,18 +282,7 @@ def collect_model_subset(
     entities = {
         cfihos_id: full_model[cfihos_id]
         for cfihos_id in full_model
-        if (
-            (scope_config == ScopeConfig.SCOPED and cfihos_id in scope)
-            or (
-                scope_config == ScopeConfig.TAGS
-                and cfihos_id.startswith(constants.CFIHOS_TYPE_TAG_PREFIX)
-            )
-            or (
-                scope_config == ScopeConfig.EQUIPMENT
-                and cfihos_id.startswith(constants.CFIHOS_TYPE_EQUIPMENT_PREFIX)
-            )
-            or full_model[cfihos_id][EntityStructure.FIRSTCLASSCITIZEN]
-        )
+        if cfihos_id in scope
     }
 
     for entity_id in entities:

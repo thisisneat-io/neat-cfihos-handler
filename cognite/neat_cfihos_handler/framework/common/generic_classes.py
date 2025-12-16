@@ -53,6 +53,7 @@ class PropertyStructure:
     ENUMERATION_TABLE: str = "enumerationTableName"
     UOM: str = "unitOfMeasure"
     PROPERTY_GROUP: str = "propertyGroup"
+    PROPERTY_GROUP_DMS_NAME: str = "propertyGroupDmsName"
     INHERITED: str = "inherited"
     INHERITED_FROM: str = "inheritedFrom"
     FIRSTCLASSCITIZEN = "firstClassCitizen"
@@ -117,6 +118,12 @@ class NeatPropertyStructure:
     CONTAINER_PROPERTY: str = "Container Property"
     INDEX: str = "Index"
     CONSTRAINT: str = "Constraint"
+
+class CfihosDmsIdentifierMapping:
+    """Defines field names for CFIHOS DMS identifier mapping structure representation.
+    """
+    CFIHOS_NAME: str = "cfihos_name"
+    CFIHOS_CODE: str = "cfihos_code"
 
 
 class NeatContainerStructure:
