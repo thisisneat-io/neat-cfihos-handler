@@ -245,7 +245,10 @@ def build_neat_model_from_entities(
                         # if dms_identifire is CFIHOS_CODE, then use the property name, otherwise use the property id
                         name=prop_data[PropertyStructure.NAME]
                         if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
-                        else prop_data[PropertyStructure.ID],
+                        else prop_data[PropertyStructure.NAME]
+                        + " ("
+                        + prop_data[PropertyStructure.ID]
+                        + ")",
                         description=prop_data[PropertyStructure.DESCRIPTION],
                         connection=connection_property,
                         value_type=value_type_property
@@ -284,7 +287,10 @@ def build_neat_model_from_entities(
                         # if dms_identifire is CFIHOS_CODE, then use the property name, otherwise use the property id
                         name=prop_data[PropertyStructure.NAME]
                         if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
-                        else prop_data[PropertyStructure.ID],
+                        else prop_data[PropertyStructure.NAME]
+                        + " ("
+                        + prop_data[PropertyStructure.ID]
+                        + ")",
                         description=prop_data[PropertyStructure.DESCRIPTION],
                         value_type=prop_data[PropertyStructure.TARGET_TYPE],
                         min_count=0,
