@@ -322,7 +322,10 @@ def build_neat_model_from_entities(
                 ],
                 view_name=entity_data[EntityStructure.NAME]
                 if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
-                else entity_data[EntityStructure.ID],
+                else entity_data[EntityStructure.NAME]
+                + " ("
+                + entity_data[EntityStructure.ID]
+                + ")",
                 view_description=entity_data[EntityStructure.DESCRIPTION],
                 implements=",".join(parents_ext_ids) if parents_ext_ids else None,
                 filter=entity_data[EntityStructure.VIEW_FILTER]
