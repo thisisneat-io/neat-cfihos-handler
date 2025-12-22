@@ -1,4 +1,4 @@
-tag class CFIHOS unique code,tag class name,property CFIHOS unique code,property name,SI unit of measure CFIHOS unique code,SI unit of measure name,imperial unit of measure CFIHOS unique code,imperial unit of measure name,in model
+tag class CFIHOS unique code,tag class name,property CFIHOS unique code,property name,SI unit of measure CFIHOS unique code,SI unit of measure name,imperial unit of measure CFIHOS unique code,imperial unit of measure name,CDF in model
 CFIHOS-30000395,absolute pressure transmitter,CFIHOS-40000110,explosion protection gas group,,,,,True
 CFIHOS-30000395,absolute pressure transmitter,CFIHOS-40000112,explosion protection temperature class,,,,,True
 CFIHOS-30000395,absolute pressure transmitter,CFIHOS-40000113,explosion protection zone,,,,,True
