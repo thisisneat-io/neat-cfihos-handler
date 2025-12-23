@@ -243,7 +243,7 @@ To add CFIHOS extensions like XOM-CFIHOS, add an additional processor configurat
 
 2. **Separate Data Folder**: Point to a different folder containing the extension's CSV files.
 
-3. **Edge Files**: Extensions may include `entities_edges` files that define additional edge relationships. Edges are not part of CFIHOS. Therefore, edges will be considered an add-on to and should be configured in the etentions rather than Standard-CFIHOS
+3. **Edge Files**: Extensions may include `entities_edges` files that define additional edge relationships. Edges are not part of CFIHOS. Therefore, edges will be considered an add-on to and should be configured in the extentions rather than Standard-CFIHOS
 
 4. **Combined Processing**: All processors in the array are processed together, creating a unified model that combines standard CFIHOS and extensions.
 
