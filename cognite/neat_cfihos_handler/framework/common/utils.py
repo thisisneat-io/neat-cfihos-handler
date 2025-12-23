@@ -22,7 +22,6 @@ from .generic_classes import (
     NeatViewStructure,
     PropertyStructure,
     Relations,
-    ScopeConfig,
 )
 from .log import log_init
 
@@ -240,7 +239,7 @@ def dfs(visited: set, entity_id: str, full_model: dict):
     if entity_id not in visited:
         visited.add(entity_id)
         entity_data = full_model[entity_id]
-        inherits_from_id = entity_data.get(EntityStructure.INHERITS_FROM_ID, []) or []
+        inherits_from_id = entity_data.get(EntityStructure.FULL_INHERITANCE, []) or []
         extends = [item for item in inherits_from_id if item in full_model]
 
         if entity_data[EntityStructure.PROPERTIES]:
