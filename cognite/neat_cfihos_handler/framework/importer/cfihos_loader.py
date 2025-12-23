@@ -1156,7 +1156,7 @@ class CfihosModelLoader(BaseModelInterpreter):
         ] = False  # TODO Missing data on this, thus defaults to false
         df_prop[
             PropertyStructure.MULTI_VALUED
-        ] = False  # TODO Missing data on this, thus defaults to false
+        ] = False  # TODO Use CDF isList property to determine this
 
         # Make sure that UOM column always exits
         df_prop[PropertyStructure.UOM] = (
