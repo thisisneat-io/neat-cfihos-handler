@@ -688,7 +688,6 @@ class CfihosModelLoader(BaseModelInterpreter):
             list(ENTITY_RELEVANT_PROPERTY_COLUMNS.values()) + [EntityStructure.ID]
         ]
 
-        # NOTE: reverese relations related stuff disabled for now
         df_prop = self._assign_rev_through_property(df_prop)
 
         df_prop[PropertyStructure.FIRSTCLASSCITIZEN] = False
@@ -789,19 +788,16 @@ class CfihosModelLoader(BaseModelInterpreter):
         # Native CFIHOS properties are not multivalued so far, so we set them to False
         df_prop[PropertyStructure.MULTI_VALUED] = False
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         # Add _list to direct or reverese direct relation that is multivalued (MULTI_VALUED is boolean)
         df_prop.loc[
             df_prop[PropertyStructure.MULTI_VALUED], PropertyStructure.ID
         ] += "_list"
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         # Create reverse direct relations if provided
         rows_with_reverse_relations = df_prop[
             df_prop[PropertyStructure.REV_THROUGH_PROPERTY] != ""
         ]
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         if not rows_with_reverse_relations.empty:
             reverse_direct_relations = self._create_reverse_direct_relations(
                 rows_with_reverse_relations
