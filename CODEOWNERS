@@ -1,8 +1,1 @@
-* @cognitedata/data-science @cognitedata/data-engineering
-# Folder-specific owners
-/atlas_ai/             @ishita1983 @valnaumova
-/contextualization/    @ddowntain-cognite @dagcm
-/data_models/          @theresatalor-cognite @ddowntain-cognite
-/extractors/           @tesande @msolvik
-/streamlit/            @chad-hub @ishita1983
-/others/               @Marwan-Elsharkawy @YukihideSakihama
+* @Ali-Cog @aastor @jonathananoc
