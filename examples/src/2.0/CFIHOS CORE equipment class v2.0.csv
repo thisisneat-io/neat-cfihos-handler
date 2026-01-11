@@ -226,7 +226,7 @@ class,CFIHOS-30000310,electrical equipment class,An equipment class that contain
 equipment,CFIHOS-30000311,class,An artefact class that contains classes of artefacts or physical resources required for a purpose.,yes,no,Top node in class hierarchy,
 mechanical equipment class,CFIHOS-30000312,fired heat transfer equipment class,An equipment class that contains heat transfer equipment items with a purpose related to combustion.,yes,no,,
 class,CFIHOS-30000313,"health, safety and environment equipment class",An equipment class that contains classes of artefacts intended to be used to provide health and safety and to prevent environmental hazards.,yes,no,,
-equipment,CFIHOS-30000314,mechanical equipment class,An equipment class that contains classes that normally are the responsibility of a department for mechanical engineering.,yes,no,,
+class,CFIHOS-30000314,mechanical equipment class,An equipment class that contains classes that normally are the responsibility of a department for mechanical engineering.,yes,no,,
 vessel,CFIHOS-30000315,accumulator,"A physical object for storing energy, and which after discharge may be recharged.",no,yes,,
 electrical equipment class,CFIHOS-30000316,amplifier,A physical object for increasing the power of a signal.,no,yes,,
 other mechanical equipment,CFIHOS-30000317,anode,A physical object that is capable of emitting positive charge carriers to and/or receiving negative charge carriers from the medium of lower conductivity.,no,yes,,

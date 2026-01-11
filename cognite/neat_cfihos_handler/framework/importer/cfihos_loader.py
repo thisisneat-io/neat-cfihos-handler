@@ -684,15 +684,11 @@ class CfihosModelLoader(BaseModelInterpreter):
         df_prop = df_prop.merge(
             df, on=EntityStructure.NAME, how="left", suffixes=("", "_entity")
         )
-        # df_prop = df_prop.loc[
-        #     df_prop[PropertyStructure.IN_MODEL].astype(str).str.lower() == "true"
-        # ]
         # remove enitities columns from df_prop aftr merging
         df_prop = df_prop[
             list(ENTITY_RELEVANT_PROPERTY_COLUMNS.values()) + [EntityStructure.ID]
         ]
 
-        # NOTE: reverese relations related stuff disabled for now
         df_prop = self._assign_rev_through_property(df_prop)
 
         df_prop[PropertyStructure.FIRSTCLASSCITIZEN] = False
@@ -793,19 +789,16 @@ class CfihosModelLoader(BaseModelInterpreter):
         # Native CFIHOS properties are not multivalued so far, so we set them to False
         df_prop[PropertyStructure.MULTI_VALUED] = False
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         # Add _list to direct or reverese direct relation that is multivalued (MULTI_VALUED is boolean)
         df_prop.loc[
             df_prop[PropertyStructure.MULTI_VALUED], PropertyStructure.ID
         ] += "_list"
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         # Create reverse direct relations if provided
         rows_with_reverse_relations = df_prop[
             df_prop[PropertyStructure.REV_THROUGH_PROPERTY] != ""
         ]
 
-        # NOTE: this is disabled for now because reversr relations are not supported yet
         if not rows_with_reverse_relations.empty:
             reverse_direct_relations = self._create_reverse_direct_relations(
                 rows_with_reverse_relations
@@ -1063,11 +1056,6 @@ class CfihosModelLoader(BaseModelInterpreter):
                 metadata_subset=df_prop_metadata,
             )
 
-        # # remove properties that are not in model
-        # df_prop = df_prop.loc[
-        #     df_prop[PropertyStructure.IN_MODEL].astype(str).str.lower() == "true"
-        # ]
-
         join_key = PropertyStructure.ID
         metadata_suffix = "_metadata"
         df_prop = df_prop.merge(
@@ -1112,6 +1100,7 @@ class CfihosModelLoader(BaseModelInterpreter):
                         PropertyStructure.ID,
                         PropertyStructure.NAME,
                         PropertyStructure.UOM,
+                        PropertyStructure.IN_MODEL,
                         *metadata_columns_of_interest,
                     ]
                 )
@@ -1170,7 +1159,7 @@ class CfihosModelLoader(BaseModelInterpreter):
         ] = False  # TODO Missing data on this, thus defaults to false
         df_prop[
             PropertyStructure.MULTI_VALUED
-        ] = False  # TODO Missing data on this, thus defaults to false
+        ] = False  # TODO Use CDF isList property to determine this
 
         # Make sure that UOM column always exits
         df_prop[PropertyStructure.UOM] = (

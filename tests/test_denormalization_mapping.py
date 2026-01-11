@@ -78,7 +78,7 @@ def test_direct_child_of_first_child_is_mapped(
     # Verify all entities are in the mapping
     print(f"\nMapping keys: {sorted(mapping.keys())}")
     print(
-        f"Expected entities: CFIHOS-30000397, CFIHOS-30000101, CFIHOS-30000667, CFIHOS-30000680, CFIHOS-30000681"
+        "Expected entities: CFIHOS-30000397, CFIHOS-30000101, CFIHOS-30000667, CFIHOS-30000680, CFIHOS-30000681"
     )
 
     # TCFIHOS-30000397 should be in the mapping (THE BUG CASE)
@@ -216,7 +216,7 @@ def test_equipment_scenario():
     mapping = processor.tag_and_equipment_classes_to_root_nodes
 
     print(f"\nEquipment scenario mapping keys: {sorted(mapping.keys())}")
-    print(f"Looking for CFIHOS-30000397 in mapping...")
+    print("Looking for CFIHOS-30000397 in mapping...")
 
     # THE BUG: CFIHOS-30000397 should be in the mapping
     assert "CFIHOS-30000397" in mapping, (
@@ -240,9 +240,9 @@ def test_equipment_scenario():
     result = processor._assign_root_nodes_to_tag_and_equipment_classes(
         "ECFIHOS-30000397", "some_property"
     )
-    assert result == "CFIHOS-30000101", (
+    assert result == "CFIHOS_30000101", (
         f"_assign_root_nodes_to_tag_and_equipment_classes should return "
-        f"CFIHOS-30000101, but got {result}"
+        f"CFIHOS_30000101, but got {result}"
     )
 
 
@@ -282,8 +282,8 @@ def test_equipment_scenario_ecfihos_30000397():
     processor._df_entity_properties = properties_df
 
     # Debug: Check the dataframe
-    print(f"\n=== DEBUG INFO ===")
-    print(f"Entities in dataframe:")
+    print("\n=== DEBUG INFO ===")
+    print("Entities in dataframe:")
     for _, row in entities_df.iterrows():
         print(
             f"  {row[EntityStructure.ID]} -> parents: {row[EntityStructure.INHERITS_FROM_ID]}"
@@ -296,11 +296,11 @@ def test_equipment_scenario_ecfihos_30000397():
     mapping = processor.tag_and_equipment_classes_to_root_nodes
 
     print(f"\nEquipment mapping: {mapping}")
-    print(f"Looking for: CFIHOS-30000397 (normalized from ECFIHOS-30000397)")
+    print("Looking for: CFIHOS-30000397 (normalized from ECFIHOS-30000397)")
 
     # THE BUG: ECFIHOS-30000397 should be in the mapping (normalized to CFIHOS-30000397)
     if "CFIHOS-30000397" not in mapping:
-        print(f"\nERROR: CFIHOS-30000397 is NOT in mapping!")
+        print("\nERROR: CFIHOS-30000397 is NOT in mapping!")
         print(f"Available keys: {sorted(mapping.keys())}")
         # Let's check what entities were processed
         entities_to_check = ["ECFIHOS-30000311", "ECFIHOS-30000101", "ECFIHOS-30000397"]
@@ -329,9 +329,9 @@ def test_equipment_scenario_ecfihos_30000397():
     result = processor._assign_root_nodes_to_tag_and_equipment_classes(
         "ECFIHOS-30000397", "some_property"
     )
-    assert result == "CFIHOS-30000101", (
+    assert result == "CFIHOS_30000101", (
         f"_assign_root_nodes_to_tag_and_equipment_classes should return "
-        f"CFIHOS-30000101, but got {result}"
+        f"CFIHOS_30000101, but got {result}"
     )
 
 

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -405,14 +405,13 @@ dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/84/446b2838b52dc9b2311943f929407146174c1040c096ad5d069cd6762c88/cognite_neat-0.123.33.tar.gz", hash = "sha256:c970401979ddf0beb207ac7efe487589ef465b26b787e8c2bfa9218d0af5820e", size = 83924973, upload-time = "2025-09-24T14:12:31.636Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/79/7c4251441c371afbba226475ed4dbea4ad993075ba69016c55725d8d6529/cognite_neat-0.123.33-py3-none-any.whl", hash = "sha256:b55e838dc91b58e6b2c4d1548728c483dbfaa72714580ca0b7878db69fd3ec66", size = 625530, upload-time = "2025-09-24T14:12:28.406Z" },
 ]
 
 [[package]]
 name = "cognite-neat-cfihos-handler"
-version = "0.1.4"
+version = "0.1.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
@@ -620,7 +619,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
