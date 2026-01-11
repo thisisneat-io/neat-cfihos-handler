@@ -491,8 +491,6 @@ class RootContainersProcessor(BaseProcessor):
         Returns:
             None
         """
-        properties = []
-        entities: dict[str, list[dict[str, str]]] = {}
         # unique_properties = self._df_entity_properties[PropertyStructure.ID].unique()
         tag_equipment_class_entity_properties = self._df_entity_properties.loc[
             (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
@@ -1158,8 +1156,8 @@ class RootContainersProcessor(BaseProcessor):
         denormalization_map = {}
 
         # Build parent-child mapping
-        entity_to_parents = {}
-        entity_to_children = {}
+        entity_to_parents: dict[str, list[str]] = {}
+        entity_to_children: dict[str, list[str]] = {}
 
         for _, row in self._df_entities.iterrows():
             entity_id = row[EntityStructure.ID]
@@ -1342,7 +1340,7 @@ class RootContainersProcessor(BaseProcessor):
     def _assign_root_nodes_to_tag_and_equipment_classes(
         self, enitity_id: str, property_id: str
     ) -> str:
-        """Returns the root node entity ID assigned to the given tag or equipment class entity ID.
+        """Return the root node entity ID assigned to the given tag or equipment class entity ID.
 
         Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
         The mapping uses normalized CFIHOS IDs (without T/E prefix) for both keys and values.
