@@ -319,12 +319,21 @@ def build_neat_model_from_entities(
                 else entity_data[
                     map_entity_identifier[CfihosDmsIdentifierMapping.CFIHOS_CODE]
                 ],
-                view_name=entity_data[EntityStructure.NAME]
-                if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
-                else entity_data[EntityStructure.NAME]
-                + " ("
-                + entity_data[EntityStructure.ID]
-                + ")",
+                view_name=(
+                    entity_data[EntityStructure.NAME]
+                    if dms_identifire == CfihosDmsIdentifierMapping.CFIHOS_CODE
+                    and entity_data.get(EntityStructure.NAME)
+                    else (
+                        (
+                            (entity_data[EntityStructure.NAME] or "")
+                            + " ("
+                            + (entity_data[EntityStructure.ID] or "")
+                            + ")"
+                        )
+                        if entity_data.get(EntityStructure.NAME)
+                        else None
+                    )
+                ),
                 view_description=entity_data[EntityStructure.DESCRIPTION],
                 implements=",".join(parents_ext_ids) if parents_ext_ids else None,
                 filter=entity_data[EntityStructure.VIEW_FILTER]
