@@ -221,10 +221,9 @@ class RootContainersProcessor(BaseProcessor):
             .astype("boolean")
             .fillna(False)
         )
+
         # Step 0: create the denormalization mapping for the root containers
         self._create_denormalization_mapping()
-        # Step 1: build the full inheritance of entities
-        self._build_entities_full_inheritance()
         # Step 2: extend the direct relations properties with sclarified properties
         if self.add_scalar_properties_for_direct_relations:
             self._extend_additional_properties_for_direct_relations()
@@ -239,6 +238,8 @@ class RootContainersProcessor(BaseProcessor):
             # Step 5: Append the first-class citizen entities' properties to the model properties
             self._extend_container_model_first_class_citizens_entities()
         elif self.model_type == SparseModelType.VIEWS:
+            # Step 1: build the full inheritance of entities
+            self._build_entities_full_inheritance()
             # Step 4: create the model entities and store them in the global model_entities dict
             self._create_views_model_entities()
         else:
@@ -405,7 +406,7 @@ class RootContainersProcessor(BaseProcessor):
                 (
                     self._df_entity_properties.loc[
                         lambda d: d[PropertyStructure.PROPERTY_TYPE]
-                        == "ENTITY_RELATION"  # TODO: use constants
+                        == "ENTITY_RELATION"
                     ]
                     .assign(
                         **{
@@ -419,7 +420,7 @@ class RootContainersProcessor(BaseProcessor):
                             .astype(str)
                             .fillna("")
                             .str.replace("_rel", "", regex=False),
-                            PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",  # TODO: use constants
+                            PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                             PropertyStructure.TARGET_TYPE: lambda x: x[
                                 PropertyStructure.ORIGINAL_TARGET_TYPE
                             ],
@@ -481,6 +482,46 @@ class RootContainersProcessor(BaseProcessor):
             ignore_index=True,
         )
 
+    def _create_container_model_entities2(self):
+        """Create and validate model properties from the collected entity properties.
+
+        This function processes the entity
+        properties DataFrame, checks for consistency, and constructs a DataFrame of unique model properties.
+
+        This method performs the following steps:
+        - Extracts unique properties from the entity properties DataFrame.
+        - Validates that each property has consistent attribute values across non-first-class citizen entries.
+        - Constructs property rows and appends them to a list of properties.
+        - Converts the list of properties into a DataFrame and updates the model properties dictionary.
+
+        Returns:
+            None
+        """
+        # unique_properties = self._df_entity_properties[PropertyStructure.ID].unique()
+        tag_equipment_class_entity_properties = self._df_entity_properties.loc[
+            (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
+            & (
+                ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
+                    [Relations.EDGE, Relations.REVERSE]
+                )
+            )
+            & (
+                self._df_entity_properties[EntityStructure.ID].str.startswith(
+                    ("T", "E")
+                )
+            )
+        ]
+        lst_group_properties = []
+        for _, entity_property in tag_equipment_class_entity_properties.iterrows():
+            entity_id = self._assign_root_nodes_to_tag_and_equipment_classes(
+                entity_property[EntityStructure.ID]
+            )
+            lst_group_properties.append(
+                {entity_property[EntityStructure.ID]: entity_id}
+            )
+
+        print("xx")
+
     def _create_container_model_entities(self):
         """Create and validate model properties from the collected entity properties.
 
@@ -508,6 +549,11 @@ class RootContainersProcessor(BaseProcessor):
                 )
             )
             & (self._df_entity_properties[EntityStructure.ID].notna())
+            # & (
+            #     # self._df_entity_properties[EntityStructure.ID].str.startswith(
+            #     #     ("T", "E")
+            #     # )
+            # )
         ]
         # Check that all target types are present
         for _, prop in df_properties.iterrows():
@@ -523,6 +569,9 @@ class RootContainersProcessor(BaseProcessor):
                     self._df_entities[EntityStructure.ID]
                     == prop[EntityStructure.ID][0] + property_group_id.replace("_", "-")
                 ]
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
             else:
                 property_group_id = self._assign_property_group(
                     prop[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
@@ -530,7 +579,9 @@ class RootContainersProcessor(BaseProcessor):
                 entity_filtered = self._df_entities.loc[
                     self._df_entities[EntityStructure.ID] == property_group_id
                 ]
-            entity_item = entity_filtered.iloc[0] if not entity_filtered.empty else None
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
 
             entity_property_row = self._create_property_row(
                 {
@@ -620,7 +671,6 @@ class RootContainersProcessor(BaseProcessor):
                         PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     },
                     property_group="EntityTypeGroup",
-                    property_group_dms_name="EntityTypeGroup",
                     is_first_class_citzen=True,
                     is_edge_property=False,
                     is_reverse_relation=False,
@@ -752,9 +802,6 @@ class RootContainersProcessor(BaseProcessor):
                     entity_property_row = self._create_property_row(
                         prop,
                         property_group=prop[EntityStructure.ID].replace("-", "_"),
-                        property_group_dms_name=entities[property_group_id][
-                            EntityStructure.DMS_NAME
-                        ],
                         is_first_class_citzen=True,
                         is_edge_property=prop[PropertyStructure.PROPERTY_TYPE]
                         == Relations.EDGE,
@@ -797,19 +844,7 @@ class RootContainersProcessor(BaseProcessor):
         # Process each entity row
         for _, row in self._df_entities.iterrows():
             unique_entity_id = self._map_entity_id_to_dms_id[row[EntityStructure.ID]]
-            df_current_entity_properties = self._df_entity_properties[
-                (
-                    (
-                        self._df_entity_properties[EntityStructure.ID]
-                        == row[EntityStructure.ID]
-                    )
-                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
-                )
-            ]
 
-            if df_current_entity_properties.empty:
-                # no available properties assigned to this entity. Skip it.
-                continue
             # Check for duplicates
             if unique_entity_id in entities:
                 raise NeatValueError(
@@ -832,14 +867,9 @@ class RootContainersProcessor(BaseProcessor):
                 EntityStructure.INHERITS_FROM_NAME: row[
                     EntityStructure.INHERITS_FROM_NAME
                 ],
-                EntityStructure.FULL_INHERITANCE: (
-                    [
-                        self._map_entity_id_to_dms_id[parent_id]
-                        for parent_id in row[EntityStructure.FULL_INHERITANCE]
-                    ]
-                    if row[EntityStructure.FULL_INHERITANCE] is not None
-                    else None
-                ),
+                EntityStructure.FULL_INHERITANCE: row[EntityStructure.FULL_INHERITANCE],
+                "cfihosType": row["type"],
+                "cfihosId": row[EntityStructure.ID],
                 EntityStructure.PROPERTIES: [],
                 EntityStructure.FIRSTCLASSCITIZEN: bool(
                     row[EntityStructure.FIRSTCLASSCITIZEN]
@@ -863,15 +893,18 @@ class RootContainersProcessor(BaseProcessor):
             )
 
             # Loop over own properties (excluding inherited ones)
-            for _, prop_row in df_current_entity_properties.iterrows():
+            for _, prop_row in self._df_entity_properties[
+                (
+                    (
+                        self._df_entity_properties[EntityStructure.ID]
+                        == row[EntityStructure.ID]
+                    )
+                    & (self._df_entity_properties[PropertyStructure.IN_MODEL])
+                )
+            ].iterrows():
                 if prop_row[PropertyStructure.ID] in inherited_props:
                     continue  # skip inherited property
-                property_entity = self._df_entities[
-                    (
-                        self._df_entities[EntityStructure.ID]
-                        == prop_row[EntityStructure.ID]
-                    )
-                ].iloc[0]
+
                 # Check for duplicates
                 if (
                     not prop_row[PropertyStructure.FIRSTCLASSCITIZEN]
@@ -905,16 +938,20 @@ class RootContainersProcessor(BaseProcessor):
                     # TODO: add NEAT warning
                     continue
 
-                property_group = (
-                    prop_row[EntityStructure.ID].replace("-", "_")
-                    if row[EntityStructure.FIRSTCLASSCITIZEN]
-                    else self._assign_property_group(prop_row[PropertyStructure.ID])
-                )
-                property_group_dms_name = (
-                    property_entity[EntityStructure.DMS_NAME]
-                    if row[EntityStructure.FIRSTCLASSCITIZEN]
-                    else self._assign_property_group(prop_row[PropertyStructure.ID])
-                )
+                property_group: str = ""
+                if prop_row[EntityStructure.ID].startswith(("T", "E")):
+                    property_group = (
+                        self._assign_root_nodes_to_tag_and_equipment_classes(
+                            prop_row[EntityStructure.ID], prop_row[PropertyStructure.ID]
+                        )
+                    )
+                else:
+                    property_group = (
+                        prop_row[EntityStructure.ID].replace("-", "_")
+                        if row[EntityStructure.FIRSTCLASSCITIZEN]
+                        else self._assign_property_group(prop_row[PropertyStructure.ID])
+                    )
+
                 target_type = self._map_entity_id_to_dms_name.get(
                     prop_row[PropertyStructure.TARGET_TYPE],
                     prop_row[PropertyStructure.TARGET_TYPE],
@@ -923,7 +960,6 @@ class RootContainersProcessor(BaseProcessor):
                 property_row = self._create_property_row(
                     prop_row,
                     property_group=property_group,
-                    property_group_dms_name=property_group_dms_name,
                     is_first_class_citzen=row[EntityStructure.FIRSTCLASSCITIZEN],
                     is_edge_property=prop_row[PropertyStructure.PROPERTY_TYPE]
                     == Relations.EDGE,
@@ -943,15 +979,14 @@ class RootContainersProcessor(BaseProcessor):
                     self._create_property_row(
                         {
                             PropertyStructure.ID: "entityType",
-                            PropertyStructure.NAME: "Entity Type Property",
+                            PropertyStructure.NAME: "entityType",
                             PropertyStructure.DMS_NAME: "entityType",
-                            PropertyStructure.DESCRIPTION: "Property used to hold CFIHOS IDs to be used in filtering instances in containers",
+                            PropertyStructure.DESCRIPTION: "entityType",
                             PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                             PropertyStructure.TARGET_TYPE: "String",
                             PropertyStructure.IS_REQUIRED: True,
                         },
                         property_group="EntityTypeGroup",
-                        property_group_dms_name="EntityTypeGroup",
                     )
                 )
 
@@ -977,7 +1012,7 @@ class RootContainersProcessor(BaseProcessor):
     ) -> str:
         """Group non-FCC properties into groups of 100.
 
-        Example: CFIHOS_1_10000001_10000100, CFIHOS_4_40000001_40000100, etc.
+        Example: CFIHOS_1_10000001_10000101, CFIHOS_4_40000001_40000101, etc.
         """
         propertyId = propertyId.replace("-", "_")
         id_number = int(self._get_property_id_number(propertyId))
@@ -987,12 +1022,12 @@ class RootContainersProcessor(BaseProcessor):
         if id_number % container_property_limit == 0:
             property_group_id = (
                 f"{id_number - (id_number - 1) % container_property_limit}_"
-                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit - 1}"
+                f"{id_number - (id_number - 1) % container_property_limit + container_property_limit}"
             )
         else:
             property_group_id = (
                 f"{id_number - id_number % container_property_limit + 1}_"
-                f"{id_number - id_number % container_property_limit + container_property_limit}"
+                f"{id_number - id_number % container_property_limit + container_property_limit + 1}"
             )
         property_group_id = (
             f"{property_group_id}_ext"
@@ -1007,11 +1042,6 @@ class RootContainersProcessor(BaseProcessor):
 
     def _build_entities_full_inheritance(self):
         """Update a 'full_inheritance' column to df_entities containing all ancestor entityIds."""
-        # Get set of entity IDs that have properties
-        entities_with_properties = set(
-            self._df_entity_properties[EntityStructure.ID].unique()
-        )
-
         entity_to_parents = self._df_entities.set_index(EntityStructure.ID)[
             EntityStructure.INHERITS_FROM_ID
         ].to_dict()
@@ -1028,14 +1058,9 @@ class RootContainersProcessor(BaseProcessor):
                 ancestors = []
                 for parent in parents:
                     if parent is not None:
-                        # Only include ancestors that have properties
-                        if parent in entities_with_properties:
-                            ancestors.append(parent)
+                        ancestors.append(parent)
                         ancestors.extend(get_ancestors(parent))
-                # Filter to only include ancestors with properties
-                memo[eid] = [
-                    anc for anc in ancestors if anc in entities_with_properties
-                ]
+                memo[eid] = ancestors
             return memo[eid]
 
         self._df_entities[EntityStructure.FULL_INHERITANCE] = self._df_entities[
@@ -1092,6 +1117,25 @@ class RootContainersProcessor(BaseProcessor):
                 )
 
         return False
+
+    def _get_property_id_number(self, property_id: str) -> str:
+        property_id_number = re.findall(r"\d+", property_id)[0]
+        return property_id_number
+
+    def _loggingDebug(self, msg: str) -> None:
+        logging.debug(f"[Model Processor] {msg}")
+
+    def _loggingInfo(self, msg: str) -> None:
+        logging.info(f"[Model Processor] {msg}")
+
+    def _loggingWarning(self, msg: str) -> None:
+        logging.warning(f"[Model Processor] {msg}")
+
+    def _loggingError(self, msg: str) -> None:
+        logging.error(f"[Model Processor] {msg}")
+
+    def _loggingCritical(self, msg: str) -> None:
+        logging.critical(f"[Model Processor] {msg}")
 
     def _create_denormalization_mapping(self) -> None:
         """Create a dictionary mapping entity IDs to their denormalized parent IDs.
@@ -1322,22 +1366,3 @@ class RootContainersProcessor(BaseProcessor):
         if property_id.lower().endswith("_uom"):
             return node_group_id.replace("-", "_") + "_UOM" if node_group_id else None
         return node_group_id.replace("-", "_") if node_group_id else None
-
-    def _get_property_id_number(self, property_id: str) -> str:
-        property_id_number = re.findall(r"\d+", property_id)[0]
-        return property_id_number
-
-    def _loggingDebug(self, msg: str) -> None:
-        logging.debug(f"[Model Processor] {msg}")
-
-    def _loggingInfo(self, msg: str) -> None:
-        logging.info(f"[Model Processor] {msg}")
-
-    def _loggingWarning(self, msg: str) -> None:
-        logging.warning(f"[Model Processor] {msg}")
-
-    def _loggingError(self, msg: str) -> None:
-        logging.error(f"[Model Processor] {msg}")
-
-    def _loggingCritical(self, msg: str) -> None:
-        logging.critical(f"[Model Processor] {msg}")
