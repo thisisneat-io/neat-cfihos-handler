@@ -325,10 +325,10 @@ class RootContainersProcessor(BaseProcessor):
         if is_uom_variant:
             property_row.update(
                 {
-                    PropertyStructure.ID: f"{property_item[PropertyStructure.ID].replace('-', '_')}_UOM",
-                    PropertyStructure.NAME: f"{property_item[PropertyStructure.NAME]}_UOM",
-                    PropertyStructure.DMS_NAME: f"{property_item[PropertyStructure.DMS_NAME]}_UOM",
-                    PropertyStructure.DESCRIPTION: f"{property_item[PropertyStructure.DESCRIPTION]} unit of measure",
+                    # PropertyStructure.ID: f"{property_item[PropertyStructure.ID].replace('-', '_')}_UOM",
+                    # PropertyStructure.NAME: f"{property_item[PropertyStructure.NAME]}_UOM",
+                    # PropertyStructure.DMS_NAME: f"{property_item[PropertyStructure.DMS_NAME]}_UOM",
+                    PropertyStructure.DESCRIPTION: f"Unit of Measure for {property_item[PropertyStructure.NAME]}",
                     PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     PropertyStructure.TARGET_TYPE: "String",
                     "cfihosId": f"{property_item[PropertyStructure.ID]}_UOM",
@@ -511,8 +511,13 @@ class RootContainersProcessor(BaseProcessor):
         ]
         # Check that all target types are present
         for _, prop in df_properties.iterrows():
+            if prop[PropertyStructure.ID].endswith("_UOM"):
+                print("xx")
             property_group_id: str = ""
+            property_group_dms_name: str = ""
+            is_uom_property: bool = False
             entity_item = None
+            # TODO: check Tags and Equipment Classes defferently
             if prop[EntityStructure.ID].startswith(("T", "E")):
                 property_group_id = (
                     self._assign_root_nodes_to_tag_and_equipment_classes(
@@ -523,14 +528,53 @@ class RootContainersProcessor(BaseProcessor):
                     self._df_entities[EntityStructure.ID]
                     == prop[EntityStructure.ID][0] + property_group_id.replace("_", "-")
                 ]
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
+                is_uom_property = prop[PropertyStructure.ID].lower().endswith("_uom")
+                if is_uom_property:
+                    # update the property group id and dms name for the uom variant
+                    property_group_id = property_group_id + "_UOM"
+                    # update the property group dms name for the uom variant
+                    property_group_dms_name = (
+                        entity_item[EntityStructure.DMS_NAME]
+                        .replace("_T", "")
+                        .replace("_E", "")
+                        + "_UOM"
+                        if entity_item is not None
+                        and entity_item.get(EntityStructure.DMS_NAME) is not None
+                        else None
+                    )
+                    if entity_item is not None:
+                        entity_item[EntityStructure.DESCRIPTION] = (
+                            "Unit of Measure for " + entity_item[EntityStructure.NAME]
+                        )
+                        entity_item[EntityStructure.NAME] = (
+                            entity_item[EntityStructure.NAME] + "_UOM"
+                        )
+                        entity_item[EntityStructure.DMS_NAME] = (
+                            entity_item[EntityStructure.DMS_NAME] + "_UOM"
+                        )
+                else:
+                    property_group_dms_name = (
+                        entity_item[EntityStructure.DMS_NAME]
+                        .replace("_T", "")
+                        .replace("_E", "")
+                        if entity_item is not None
+                        and entity_item.get(EntityStructure.DMS_NAME) is not None
+                        else None
+                    )
             else:
                 property_group_id = self._assign_property_group(
                     prop[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
                 )
+                property_group_dms_name = property_group_id
                 entity_filtered = self._df_entities.loc[
                     self._df_entities[EntityStructure.ID] == property_group_id
                 ]
-            entity_item = entity_filtered.iloc[0] if not entity_filtered.empty else None
+                entity_item = (
+                    entity_filtered.iloc[0] if not entity_filtered.empty else None
+                )
 
             entity_property_row = self._create_property_row(
                 {
@@ -545,7 +589,8 @@ class RootContainersProcessor(BaseProcessor):
                     PropertyStructure.IS_REQUIRED: prop[PropertyStructure.IS_REQUIRED],
                 },
                 property_group=property_group_id,
-                property_group_dms_name=property_group_id,
+                property_group_dms_name=property_group_dms_name,
+                is_uom_variant=is_uom_property,
             )
             if property_group_id not in entities:
                 entities[property_group_id] = {
@@ -554,10 +599,7 @@ class RootContainersProcessor(BaseProcessor):
                     if entity_item is not None
                     and entity_item.get(EntityStructure.NAME) is not None
                     else property_group_id,
-                    EntityStructure.DMS_NAME: entity_item[EntityStructure.DMS_NAME]
-                    if entity_item is not None
-                    and entity_item.get(EntityStructure.DMS_NAME) is not None
-                    else property_group_id,
+                    EntityStructure.DMS_NAME: property_group_dms_name,
                     EntityStructure.DESCRIPTION: entity_item[
                         EntityStructure.DESCRIPTION
                     ]
@@ -1319,8 +1361,8 @@ class RootContainersProcessor(BaseProcessor):
         node_group_id = self.tag_and_equipment_classes_to_root_nodes.get(
             normalized_id, None
         )
-        if property_id.lower().endswith("_uom"):
-            return node_group_id.replace("-", "_") + "_UOM" if node_group_id else None
+        # if property_id.lower().endswith("_uom"):
+        #     return node_group_id.replace("-", "_") + "_UOM" if node_group_id else None
         return node_group_id.replace("-", "_") if node_group_id else None
 
     def _get_property_id_number(self, property_id: str) -> str:
