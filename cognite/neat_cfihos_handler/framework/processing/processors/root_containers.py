@@ -26,6 +26,8 @@ import pandas as pd
 from cognite.neat.core._issues.errors import NeatValueError
 
 from cognite.neat_cfihos_handler.framework.common.constants import (
+    CFIHOS_TYPE_EQUIPMENT,
+    CFIHOS_TYPE_TAG,
     CONTAINER_PROPERTY_LIMIT,
 )
 from cognite.neat_cfihos_handler.framework.common.generic_classes import (
@@ -579,7 +581,13 @@ class RootContainersProcessor(BaseProcessor):
         """
         entity_id = prop[EntityStructure.ID]
         property_id = prop[PropertyStructure.ID]
-        is_tag_or_equipment = entity_id.startswith(("T", "E"))
+        entity_cfihos_type = self._df_entities.loc[
+            self._df_entities[EntityStructure.ID] == entity_id,
+            EntityStructure.ENTITY_CFIHOS_TYPE,
+        ].iloc[0]
+        is_tag_or_equipment = False
+        if entity_cfihos_type in [CFIHOS_TYPE_TAG, CFIHOS_TYPE_EQUIPMENT]:
+            is_tag_or_equipment = True
 
         if is_tag_or_equipment:
             return self._resolve_tag_equipment_property_group(entity_id, property_id)
