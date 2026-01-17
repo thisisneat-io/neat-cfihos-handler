@@ -636,6 +636,10 @@ class CfihosModelLoader(BaseModelInterpreter):
             lambda x: self.sanitize_as_dms_string(x, case_style="PascalCase")
         )
 
+        df[EntityStructure.BASE_DMS_NAME] = df[EntityStructure.DMS_NAME]
+        df[EntityStructure.BASE_ID] = df[EntityStructure.ID]
+        df[EntityStructure.ENTITY_CFIHOS_TYPE] = cfihos_type_obj.type
+
         # adding entities implementing core model
         if cfihos_type_obj.entities_core_model:
             # # Read Core Data Model inheritance requirements
@@ -896,6 +900,10 @@ class CfihosModelLoader(BaseModelInterpreter):
             keep_default_na=False,
         )
 
+        df[EntityStructure.BASE_ID] = df[
+            tag_or_equipment.raw_column_mapping[EntityStructure.ID]
+        ]
+        df[EntityStructure.ENTITY_CFIHOS_TYPE] = cfihos_type_obj.type
         # Convert to global unique CFIHOS ID
         df[tag_or_equipment.raw_column_mapping[EntityStructure.ID]] = np.where(
             df[tag_or_equipment.raw_column_mapping[EntityStructure.ID]]
@@ -1021,10 +1029,12 @@ class CfihosModelLoader(BaseModelInterpreter):
         df = df[
             [
                 EntityStructure.ID,
+                EntityStructure.BASE_ID,
                 EntityStructure.NAME,
                 EntityStructure.DESCRIPTION,
                 EntityStructure.INHERITS_FROM_ID,
                 EntityStructure.INHERITS_FROM_NAME,
+                EntityStructure.ENTITY_CFIHOS_TYPE,
             ]
         ]
         # add entity name column that is DMS compatible
@@ -1032,6 +1042,10 @@ class CfihosModelLoader(BaseModelInterpreter):
             lambda x: self.sanitize_as_dms_string(x, case_style="PascalCase")
             + "_"
             + cfihos_type_obj.type_prefix
+        )
+
+        df[EntityStructure.BASE_DMS_NAME] = df[EntityStructure.NAME].apply(
+            lambda x: self.sanitize_as_dms_string(x, case_style="PascalCase")
         )
 
         # Get related properties
