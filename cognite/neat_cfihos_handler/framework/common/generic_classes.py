@@ -16,8 +16,10 @@ class EntityStructure:
     """
 
     ID: str = "entityId"
+    BASE_ID: str = "baseEntityId"
     NAME: str = "entityName"
     DMS_NAME: str = "dmsEntityName"  # DMS name is used for the entity in the DMS
+    BASE_DMS_NAME: str = "baseEntityDmsName"
     DESCRIPTION: str = "description"
     INHERITS_FROM_NAME: str = "inheritsFromName"
     INHERITS_FROM_ID: str = "inheritsFromId"
@@ -29,6 +31,7 @@ class EntityStructure:
         "implementsCoreModel"  # str in CSV -> list[dict] after processing
     )
     VIEW_FILTER: str = "viewFilters"
+    ENTITY_CFIHOS_TYPE: str = "entityCfihosType"
 
 
 # Property Fields
@@ -119,9 +122,10 @@ class NeatPropertyStructure:
     INDEX: str = "Index"
     CONSTRAINT: str = "Constraint"
 
+
 class CfihosDmsIdentifierMapping:
-    """Defines field names for CFIHOS DMS identifier mapping structure representation.
-    """
+    """Defines field names for CFIHOS DMS identifier mapping structure representation."""
+
     CFIHOS_NAME: str = "cfihos_name"
     CFIHOS_CODE: str = "cfihos_code"
 
