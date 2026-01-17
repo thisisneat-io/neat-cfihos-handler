@@ -481,100 +481,33 @@ class RootContainersProcessor(BaseProcessor):
             ignore_index=True,
         )
 
-    def _create_container_model_entities(self):
+    def _create_container_model_entities(self) -> None:
         """Create and validate model properties from the collected entity properties.
 
-        This function processes the entity
-        properties DataFrame, checks for consistency, and constructs a DataFrame of unique model properties.
+        This method processes non-first-class-citizen entity properties, groups them into
+        container entities, and constructs the model structure for CDF containers.
 
-        This method performs the following steps:
-        - Extracts unique properties from the entity properties DataFrame.
-        - Validates that each property has consistent attribute values across non-first-class citizen entries.
-        - Constructs property rows and appends them to a list of properties.
-        - Converts the list of properties into a DataFrame and updates the model properties dictionary.
-
-        Returns:
-            None
+        Processing Steps:
+            1. Filter properties to exclude first-class citizens, edge/reverse relations,
+               and entries without entity IDs.
+            2. For each property, determine its property group based on entity type
+               (Tag/Equipment classes vs. other entities).
+            3. Handle UOM (Unit of Measure) property variants with appropriate naming.
+            4. Create property rows and organize them into entity groups.
+            5. Add the EntityTypeGroup for CFIHOS ID filtering support.
         """
-        entities: dict[str, list[dict[str, str]]] = {}
-        # Track property IDs per property group for efficient duplicate checking
+        entities: dict[str, dict] = {}
         property_ids_per_group: dict[str, set[str]] = {}
-        # unique_properties = self._df_entity_properties[PropertyStructure.ID].unique()
-        df_properties = self._df_entity_properties.loc[
-            (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
-            & (
-                ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
-                    [Relations.EDGE, Relations.REVERSE]
-                )
-            )
-            & (self._df_entity_properties[EntityStructure.ID].notna())
-        ]
-        # Check that all target types are present
+
+        df_properties = self._filter_non_fcc_properties()
+
         for _, prop in df_properties.iterrows():
-            if prop[PropertyStructure.ID].endswith("_UOM"):
-                print("xx")
-            property_group_id: str = ""
-            property_group_dms_name: str = ""
-            is_uom_property: bool = False
-            entity_item = None
-            # TODO: check Tags and Equipment Classes defferently
-            if prop[EntityStructure.ID].startswith(("T", "E")):
-                property_group_id = (
-                    self._assign_root_nodes_to_tag_and_equipment_classes(
-                        prop[EntityStructure.ID], prop[PropertyStructure.ID]
-                    )
-                )
-                entity_filtered = self._df_entities.loc[
-                    self._df_entities[EntityStructure.ID]
-                    == prop[EntityStructure.ID][0] + property_group_id.replace("_", "-")
-                ]
-                entity_item = (
-                    entity_filtered.iloc[0] if not entity_filtered.empty else None
-                )
-                is_uom_property = prop[PropertyStructure.ID].lower().endswith("_uom")
-                if is_uom_property:
-                    # update the property group id and dms name for the uom variant
-                    property_group_id = property_group_id + "_UOM"
-                    # update the property group dms name for the uom variant
-                    property_group_dms_name = (
-                        entity_item[EntityStructure.DMS_NAME]
-                        .replace("_T", "")
-                        .replace("_E", "")
-                        + "_UOM"
-                        if entity_item is not None
-                        and entity_item.get(EntityStructure.DMS_NAME) is not None
-                        else None
-                    )
-                    if entity_item is not None:
-                        entity_item[EntityStructure.DESCRIPTION] = (
-                            "Unit of Measure for " + entity_item[EntityStructure.NAME]
-                        )
-                        entity_item[EntityStructure.NAME] = (
-                            entity_item[EntityStructure.NAME] + "_UOM"
-                        )
-                        entity_item[EntityStructure.DMS_NAME] = (
-                            entity_item[EntityStructure.DMS_NAME] + "_UOM"
-                        )
-                else:
-                    property_group_dms_name = (
-                        entity_item[EntityStructure.DMS_NAME]
-                        .replace("_T", "")
-                        .replace("_E", "")
-                        if entity_item is not None
-                        and entity_item.get(EntityStructure.DMS_NAME) is not None
-                        else None
-                    )
-            else:
-                property_group_id = self._assign_property_group(
-                    prop[PropertyStructure.ID], CONTAINER_PROPERTY_LIMIT
-                )
-                property_group_dms_name = property_group_id
-                entity_filtered = self._df_entities.loc[
-                    self._df_entities[EntityStructure.ID] == property_group_id
-                ]
-                entity_item = (
-                    entity_filtered.iloc[0] if not entity_filtered.empty else None
-                )
+            (
+                property_group_id,
+                property_group_dms_name,
+                entity_item,
+                is_uom_property,
+            ) = self._resolve_property_group_info(prop)
 
             entity_property_row = self._create_property_row(
                 {
@@ -592,66 +525,309 @@ class RootContainersProcessor(BaseProcessor):
                 property_group_dms_name=property_group_dms_name,
                 is_uom_variant=is_uom_property,
             )
-            if property_group_id not in entities:
-                entities[property_group_id] = {
-                    EntityStructure.ID: property_group_id,
-                    EntityStructure.NAME: entity_item[EntityStructure.NAME]
-                    if entity_item is not None
-                    and entity_item.get(EntityStructure.NAME) is not None
-                    else property_group_id,
-                    EntityStructure.DMS_NAME: property_group_dms_name,
-                    EntityStructure.DESCRIPTION: entity_item[
-                        EntityStructure.DESCRIPTION
-                    ]
-                    if entity_item is not None
-                    and entity_item.get(EntityStructure.DESCRIPTION) is not None
-                    else None,
-                    EntityStructure.INHERITS_FROM_ID: None,
-                    EntityStructure.INHERITS_FROM_NAME: None,
-                    EntityStructure.FULL_INHERITANCE: None,
-                    EntityStructure.PROPERTIES: [],
-                    EntityStructure.FIRSTCLASSCITIZEN: False,
-                    EntityStructure.IMPLEMENTS_CORE_MODEL: None,
-                    EntityStructure.VIEW_FILTER: None,
-                }
-                # Initialize the set for tracking property IDs in this group
-                property_ids_per_group[property_group_id] = set()
-                entity_type_property = self._create_property_row(
-                    {
-                        PropertyStructure.ID: "entityType",
-                        PropertyStructure.NAME: "entityType",
-                        PropertyStructure.DMS_NAME: "entityType",
-                        PropertyStructure.DESCRIPTION: "entityType",
-                        PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
-                        PropertyStructure.TARGET_TYPE: "String",
-                        PropertyStructure.IS_REQUIRED: True,
-                    },
-                    property_group="EntityTypeGroup",
-                    property_group_dms_name="EntityTypeGroup",
-                )
-                entities[property_group_id]["properties"].append(entity_type_property)
-                # Track the entityType property ID
-                property_ids_per_group[property_group_id].add(
-                    entity_type_property[PropertyStructure.ID]
-                )
-            # Check if property with the same ID already exists in this property group
-            # Use the transformed ID from entity_property_row (dashes replaced with underscores)
-            property_id = entity_property_row[PropertyStructure.ID]
-            if property_id not in property_ids_per_group[property_group_id]:
-                entities[property_group_id]["properties"].append(entity_property_row)
-                # Track the property ID to prevent duplicates
-                property_ids_per_group[property_group_id].add(property_id)
 
-        entities["EntityTypeGroup"] = {
-            EntityStructure.ID: "EntityTypeGroup",
-            EntityStructure.NAME: "EntityTypeGroup",
-            EntityStructure.DMS_NAME: "EntityTypeGroup",
-            EntityStructure.DESCRIPTION: "Container that holds CFIHOS IDs to be used in filtering instances in wide containers",
+            if property_group_id not in entities:
+                self._initialize_entity_group(
+                    entities,
+                    property_ids_per_group,
+                    property_group_id,
+                    property_group_dms_name,
+                    entity_item,
+                )
+
+            self._add_property_to_group(
+                entities,
+                property_ids_per_group,
+                property_group_id,
+                entity_property_row,
+            )
+
+        self._add_entity_type_group(entities)
+        self._model_entities.update(entities)
+
+    def _filter_non_fcc_properties(self) -> pd.DataFrame:
+        """Filter entity properties to get non-first-class-citizen, non-relation properties.
+
+        Returns:
+            DataFrame containing filtered properties excluding first-class citizens,
+            edge/reverse relations, and entries without entity IDs.
+        """
+        return self._df_entity_properties.loc[
+            (~self._df_entity_properties[PropertyStructure.FIRSTCLASSCITIZEN])
+            & (
+                ~self._df_entity_properties[PropertyStructure.PROPERTY_TYPE].isin(
+                    [Relations.EDGE, Relations.REVERSE]
+                )
+            )
+            & (self._df_entity_properties[EntityStructure.ID].notna())
+        ]
+
+    def _resolve_property_group_info(
+        self, prop: pd.Series
+    ) -> tuple[str, str | None, pd.Series | None, bool]:
+        """Resolve property group information based on entity type and UOM status.
+
+        Args:
+            prop: A Series representing a single property row from the DataFrame.
+
+        Returns:
+            A tuple containing:
+                - property_group_id: The resolved property group identifier
+                - property_group_dms_name: The DMS name for the property group
+                - entity_item: The matching entity item (or None if not found)
+                - is_uom_property: Whether this is a UOM property variant
+        """
+        entity_id = prop[EntityStructure.ID]
+        property_id = prop[PropertyStructure.ID]
+        is_tag_or_equipment = entity_id.startswith(("T", "E"))
+
+        if is_tag_or_equipment:
+            return self._resolve_tag_equipment_property_group(entity_id, property_id)
+        else:
+            return self._resolve_standard_property_group(property_id)
+
+    def _resolve_tag_equipment_property_group(
+        self, entity_id: str, property_id: str
+    ) -> tuple[str, str | None, pd.Series | None, bool]:
+        """Resolve property group for Tag or Equipment class entities.
+
+        Args:
+            entity_id: The entity identifier (starting with 'T' or 'E').
+            property_id: The property identifier.
+
+        Returns:
+            A tuple containing property group info for Tag/Equipment entities.
+        """
+        property_group_id = self._assign_root_nodes_to_tag_and_equipment_classes(
+            entity_id, property_id
+        )
+        entity_lookup_id = entity_id[0] + property_group_id.replace("_", "-")
+        entity_item = self._find_entity_by_id(entity_lookup_id)
+
+        is_uom_property = property_id.lower().endswith("_uom")
+
+        if is_uom_property:
+            (
+                property_group_id,
+                property_group_dms_name,
+            ) = self._apply_uom_variant_transformations(property_group_id, entity_item)
+        else:
+            property_group_dms_name = self._extract_base_dms_name(entity_item)
+
+        return property_group_id, property_group_dms_name, entity_item, is_uom_property
+
+    def _resolve_standard_property_group(
+        self, property_id: str
+    ) -> tuple[str, str, pd.Series | None, bool]:
+        """Resolve property group for standard (non-Tag/Equipment) entities.
+
+        Args:
+            property_id: The property identifier.
+
+        Returns:
+            A tuple containing property group info for standard entities.
+        """
+        property_group_id = self._assign_property_group(
+            property_id, CONTAINER_PROPERTY_LIMIT
+        )
+        entity_item = self._find_entity_by_id(property_group_id)
+        return property_group_id, property_group_id, entity_item, False
+
+    def _find_entity_by_id(self, entity_id: str) -> pd.Series | None:
+        """Find an entity by its ID in the entities DataFrame.
+
+        Args:
+            entity_id: The entity identifier to search for.
+
+        Returns:
+            The matching entity Series, or None if not found.
+        """
+        entity_filtered = self._df_entities.loc[
+            self._df_entities[EntityStructure.ID] == entity_id
+        ]
+        return entity_filtered.iloc[0] if not entity_filtered.empty else None
+
+    def _apply_uom_variant_transformations(
+        self, property_group_id: str, entity_item: pd.Series | None
+    ) -> tuple[str, str | None]:
+        """Apply UOM (Unit of Measure) variant transformations to property group and entity.
+
+        Updates the property group ID with '_UOM' suffix and modifies entity_item
+        fields to reflect UOM variant naming conventions.
+
+        Args:
+            property_group_id: The original property group identifier.
+            entity_item: The entity item to transform (modified in place if not None).
+
+        Returns:
+            A tuple containing the updated property_group_id and property_group_dms_name.
+        """
+        uom_suffix = "_UOM"
+        property_group_id = property_group_id + uom_suffix
+        property_group_dms_name = self._extract_base_dms_name(entity_item, uom_suffix)
+
+        if entity_item is not None:
+            original_name = entity_item[EntityStructure.NAME]
+            entity_item[
+                EntityStructure.DESCRIPTION
+            ] = f"Unit of Measure for {original_name}"
+            entity_item[EntityStructure.NAME] = original_name + uom_suffix
+            entity_item[EntityStructure.DMS_NAME] = (
+                entity_item[EntityStructure.DMS_NAME] + uom_suffix
+            )
+
+        return property_group_id, property_group_dms_name
+
+    def _extract_base_dms_name(
+        self, entity_item: pd.Series | None, suffix: str = ""
+    ) -> str | None:
+        """Extract the base DMS name from an entity item, removing T/E prefixes.
+
+        Args:
+            entity_item: The entity item containing the DMS name.
+            suffix: Optional suffix to append to the extracted name.
+
+        Returns:
+            The extracted and cleaned DMS name, or None if entity_item is invalid.
+        """
+        if entity_item is None or entity_item.get(EntityStructure.DMS_NAME) is None:
+            return None
+
+        base_name = (
+            entity_item[EntityStructure.DMS_NAME].replace("_T", "").replace("_E", "")
+        )
+        return base_name + suffix
+
+    def _initialize_entity_group(
+        self,
+        entities: dict[str, dict],
+        property_ids_per_group: dict[str, set[str]],
+        property_group_id: str,
+        property_group_dms_name: str | None,
+        entity_item: pd.Series | None,
+    ) -> None:
+        """Initialize a new entity group with default structure and entityType property.
+
+        Args:
+            entities: The dictionary of entity groups to update.
+            property_ids_per_group: Dictionary tracking property IDs per group.
+            property_group_id: The property group identifier.
+            property_group_dms_name: The DMS name for the property group.
+            entity_item: The source entity item for metadata extraction.
+        """
+        entity_name = self._get_entity_attribute(
+            entity_item, EntityStructure.NAME, property_group_id
+        )
+        entity_description = self._get_entity_attribute(
+            entity_item, EntityStructure.DESCRIPTION, None
+        )
+
+        entities[property_group_id] = {
+            EntityStructure.ID: property_group_id,
+            EntityStructure.NAME: entity_name,
+            EntityStructure.DMS_NAME: property_group_dms_name,
+            EntityStructure.DESCRIPTION: entity_description,
             EntityStructure.INHERITS_FROM_ID: None,
             EntityStructure.INHERITS_FROM_NAME: None,
             EntityStructure.FULL_INHERITANCE: None,
-            "cfihosType": "EntityTypeGroup",
-            "cfihosId": "EntityTypeGroup",
+            EntityStructure.PROPERTIES: [],
+            EntityStructure.FIRSTCLASSCITIZEN: False,
+            EntityStructure.IMPLEMENTS_CORE_MODEL: None,
+            EntityStructure.VIEW_FILTER: None,
+        }
+
+        property_ids_per_group[property_group_id] = set()
+
+        entity_type_property = self._create_entity_type_property()
+        entities[property_group_id][EntityStructure.PROPERTIES].append(
+            entity_type_property
+        )
+        property_ids_per_group[property_group_id].add(
+            entity_type_property[PropertyStructure.ID]
+        )
+
+    def _get_entity_attribute(
+        self, entity_item: pd.Series | None, attribute: str, default: str | None
+    ) -> str | None:
+        """Safely extract an attribute from an entity item with a default fallback.
+
+        Args:
+            entity_item: The entity item to extract from.
+            attribute: The attribute name to extract.
+            default: The default value if extraction fails.
+
+        Returns:
+            The extracted attribute value or the default.
+        """
+        if entity_item is not None and entity_item.get(attribute) is not None:
+            return entity_item[attribute]
+        return default
+
+    def _create_entity_type_property(self) -> dict:
+        """Create the standard entityType property row for container groups.
+
+        Returns:
+            A property row dictionary for the entityType property.
+        """
+        return self._create_property_row(
+            {
+                PropertyStructure.ID: "entityType",
+                PropertyStructure.NAME: "entityType",
+                PropertyStructure.DMS_NAME: "entityType",
+                PropertyStructure.DESCRIPTION: "entityType",
+                PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
+                PropertyStructure.TARGET_TYPE: "String",
+                PropertyStructure.IS_REQUIRED: True,
+            },
+            property_group="EntityTypeGroup",
+            property_group_dms_name="EntityTypeGroup",
+        )
+
+    def _add_property_to_group(
+        self,
+        entities: dict[str, dict],
+        property_ids_per_group: dict[str, set[str]],
+        property_group_id: str,
+        entity_property_row: dict,
+    ) -> None:
+        """Add a property to an entity group if it doesn't already exist.
+
+        Args:
+            entities: The dictionary of entity groups.
+            property_ids_per_group: Dictionary tracking property IDs per group.
+            property_group_id: The target property group identifier.
+            entity_property_row: The property row to add.
+        """
+        property_id = entity_property_row[PropertyStructure.ID]
+        if property_id not in property_ids_per_group[property_group_id]:
+            entities[property_group_id][EntityStructure.PROPERTIES].append(
+                entity_property_row
+            )
+            property_ids_per_group[property_group_id].add(property_id)
+
+    def _add_entity_type_group(self, entities: dict[str, dict]) -> None:
+        """Add the EntityTypeGroup entity for CFIHOS ID filtering support.
+
+        The EntityTypeGroup is a special container that holds CFIHOS IDs used for
+        filtering instances in wide containers.
+
+        Args:
+            entities: The dictionary of entity groups to update.
+        """
+        entity_type_group_id = "EntityTypeGroup"
+        entities[entity_type_group_id] = {
+            EntityStructure.ID: entity_type_group_id,
+            EntityStructure.NAME: entity_type_group_id,
+            EntityStructure.DMS_NAME: entity_type_group_id,
+            EntityStructure.DESCRIPTION: (
+                "Container that holds CFIHOS IDs to be used in filtering "
+                "instances in wide containers"
+            ),
+            EntityStructure.INHERITS_FROM_ID: None,
+            EntityStructure.INHERITS_FROM_NAME: None,
+            EntityStructure.FULL_INHERITANCE: None,
+            "cfihosType": entity_type_group_id,
+            "cfihosId": entity_type_group_id,
             EntityStructure.PROPERTIES: [
                 self._create_property_row(
                     {
@@ -661,8 +837,8 @@ class RootContainersProcessor(BaseProcessor):
                         PropertyStructure.DESCRIPTION: "entityType",
                         PropertyStructure.PROPERTY_TYPE: "BASIC_DATA_TYPE",
                     },
-                    property_group="EntityTypeGroup",
-                    property_group_dms_name="EntityTypeGroup",
+                    property_group=entity_type_group_id,
+                    property_group_dms_name=entity_type_group_id,
                     is_first_class_citzen=True,
                     is_edge_property=False,
                     is_reverse_relation=False,
@@ -670,11 +846,11 @@ class RootContainersProcessor(BaseProcessor):
                     is_required=True,
                 )
             ],
-            EntityStructure.FIRSTCLASSCITIZEN: True,  # set to True to avoid denormalizing the EntityTypeGroup in wide containers
+            # Set to True to avoid denormalizing the EntityTypeGroup in wide containers
+            EntityStructure.FIRSTCLASSCITIZEN: True,
             EntityStructure.IMPLEMENTS_CORE_MODEL: None,
             EntityStructure.VIEW_FILTER: None,
         }
-        self._model_entities.update(entities)
 
     def _extend_container_model_first_class_citizens_entities(self):
         """Extend the model properties with first-class citizen properties.
