@@ -581,21 +581,21 @@ class RootContainersProcessor(BaseProcessor):
         """
         entity_id = prop[EntityStructure.ID]
         property_id = prop[PropertyStructure.ID]
-        entity_cfihos_type = self._df_entities.loc[
-            self._df_entities[EntityStructure.ID] == entity_id,
-            EntityStructure.ENTITY_CFIHOS_TYPE,
-        ].iloc[0]
+        entity_item = self._find_entity_by_id_or_base_id(entity_id)
         is_tag_or_equipment = False
-        if entity_cfihos_type in [CFIHOS_TYPE_TAG, CFIHOS_TYPE_EQUIPMENT]:
+        if entity_item[EntityStructure.ENTITY_CFIHOS_TYPE] in [
+            CFIHOS_TYPE_TAG,
+            CFIHOS_TYPE_EQUIPMENT,
+        ]:
             is_tag_or_equipment = True
 
         if is_tag_or_equipment:
-            return self._resolve_tag_equipment_property_group(entity_id, property_id)
+            return self._resolve_tag_equipment_property_group(entity_item, property_id)
         else:
             return self._resolve_standard_property_group(property_id)
 
     def _resolve_tag_equipment_property_group(
-        self, entity_id: str, property_id: str
+        self, entity_item: pd.Series, property_id: str
     ) -> tuple[str, str | None, pd.Series | None, bool]:
         """Resolve property group for Tag or Equipment class entities.
 
@@ -607,22 +607,33 @@ class RootContainersProcessor(BaseProcessor):
             A tuple containing property group info for Tag/Equipment entities.
         """
         property_group_id = self._assign_root_nodes_to_tag_and_equipment_classes(
-            entity_id, property_id
+            entity_item[EntityStructure.BASE_ID]
         )
-        entity_lookup_id = entity_id[0] + property_group_id.replace("_", "-")
-        entity_item = self._find_entity_by_id(entity_lookup_id)
-
+        property_group_entity = self._find_entity_by_id_or_base_id(
+            self._map_dms_id_to_entity_id[property_group_id]
+        )
         is_uom_property = property_id.lower().endswith("_uom")
 
         if is_uom_property:
             (
                 property_group_id,
                 property_group_dms_name,
-            ) = self._apply_uom_variant_transformations(property_group_id, entity_item)
+            ) = self._apply_uom_variant_transformations(
+                property_group_id, property_group_entity
+            )
         else:
-            property_group_dms_name = self._extract_base_dms_name(entity_item)
+            property_group_dms_name = (
+                property_group_entity[EntityStructure.BASE_DMS_NAME]
+                if property_group_entity is not None
+                else None
+            )
 
-        return property_group_id, property_group_dms_name, entity_item, is_uom_property
+        return (
+            property_group_id,
+            property_group_dms_name,
+            property_group_entity,
+            is_uom_property,
+        )
 
     def _resolve_standard_property_group(
         self, property_id: str
@@ -638,20 +649,21 @@ class RootContainersProcessor(BaseProcessor):
         property_group_id = self._assign_property_group(
             property_id, CONTAINER_PROPERTY_LIMIT
         )
-        entity_item = self._find_entity_by_id(property_group_id)
+        entity_item = self._find_entity_by_id_or_base_id(property_group_id)
         return property_group_id, property_group_id, entity_item, False
 
-    def _find_entity_by_id(self, entity_id: str) -> pd.Series | None:
-        """Find an entity by its ID in the entities DataFrame.
+    def _find_entity_by_id_or_base_id(self, entity_id: str) -> pd.Series | None:
+        """Find an entity by its ID or base ID in the entities DataFrame.
 
         Args:
-            entity_id: The entity identifier to search for.
+            entity_id: The entity identifier or base identifier to search for.
 
         Returns:
             The matching entity Series, or None if not found.
         """
         entity_filtered = self._df_entities.loc[
-            self._df_entities[EntityStructure.ID] == entity_id
+            (self._df_entities[EntityStructure.ID] == entity_id)
+            | (self._df_entities[EntityStructure.BASE_ID] == entity_id)
         ]
         return entity_filtered.iloc[0] if not entity_filtered.empty else None
 
@@ -672,7 +684,11 @@ class RootContainersProcessor(BaseProcessor):
         """
         uom_suffix = "_UOM"
         property_group_id = property_group_id + uom_suffix
-        property_group_dms_name = self._extract_base_dms_name(entity_item, uom_suffix)
+        property_group_dms_name = (
+            entity_item[EntityStructure.BASE_DMS_NAME] + uom_suffix
+            if entity_item is not None
+            else None
+        )
 
         if entity_item is not None:
             original_name = entity_item[EntityStructure.NAME]
@@ -682,6 +698,9 @@ class RootContainersProcessor(BaseProcessor):
             entity_item[EntityStructure.NAME] = original_name + uom_suffix
             entity_item[EntityStructure.DMS_NAME] = (
                 entity_item[EntityStructure.DMS_NAME] + uom_suffix
+            )
+            entity_item[EntityStructure.BASE_DMS_NAME] = (
+                entity_item[EntityStructure.BASE_DMS_NAME] + uom_suffix
             )
 
         return property_group_id, property_group_dms_name
@@ -1455,6 +1474,7 @@ class RootContainersProcessor(BaseProcessor):
 
         # Process each entity
         for entity_id in entities_to_process:
+            # TODO: read tag and equipment entity item from self._df_entities
             # Normalize the entity ID for the map key
             entity_key = normalize_cfihos_id(entity_id)
 
@@ -1520,33 +1540,22 @@ class RootContainersProcessor(BaseProcessor):
 
         self.tag_and_equipment_classes_to_root_nodes = denormalization_map
 
-    def _assign_root_nodes_to_tag_and_equipment_classes(
-        self, enitity_id: str, property_id: str
-    ) -> str:
+    def _assign_root_nodes_to_tag_and_equipment_classes(self, enitity_id: str) -> str:
         """Return the root node entity ID assigned to the given tag or equipment class entity ID.
 
-        Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.
-        The mapping uses normalized CFIHOS IDs (without T/E prefix) for both keys and values.
+        Looks up the mapping from tag_and_equipment_classes_to_root_nodes using the provided entity ID.        .
         Returns None if the entity ID is not found in the mapping.
 
         Args:
-            enitity_id (str): The tag or equipment class entity ID to look up (can be TCFIHOS- or ECFIHOS- format).
+            enitity_id (str): The tag or equipment class entity ID to look up.
 
         Returns:
             str or None: The assigned root node entity ID in normalized CFIHOS- format, or None if not mapped.
         """
-        # Normalize the entity ID (remove T/E prefix) for lookup
-        normalized_id = enitity_id
-        # NOTE CFIHOS addtions should not start with T or E in order not to confuse the below logic. E.g TOS-30000311 should not be treated as a tag.
-        normalized_id = (
-            enitity_id[1:] if enitity_id.lower().startswith(("t", "e")) else None
-        )
         # Look up in the denormalization map (which uses normalized IDs)
         node_group_id = self.tag_and_equipment_classes_to_root_nodes.get(
-            normalized_id, None
+            enitity_id, None
         )
-        # if property_id.lower().endswith("_uom"):
-        #     return node_group_id.replace("-", "_") + "_UOM" if node_group_id else None
         return node_group_id.replace("-", "_") if node_group_id else None
 
     def _get_property_id_number(self, property_id: str) -> str:
